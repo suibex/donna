@@ -32,7 +32,7 @@
   ![Screenshot from 2022-03-18 15-34-47](https://user-images.githubusercontent.com/59802817/159027995-354c6c41-618c-4b2f-9686-5c84f66b6dbc.png)
 
 
-<br><b>you can also follow traces , branches , etc with donna , as long as it is not too big (max 45 traces) :)</b> </br>
+<br><b>you can also follow traces , branches , etc with donna , as long as it is not too big (max 25 traces) :)</b> </br>
 ![Screenshot from 2022-03-18 15-36-11](https://user-images.githubusercontent.com/59802817/159027724-deae82e2-f89e-4433-93e0-6c178613603c.png)
 
 
