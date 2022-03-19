@@ -43,15 +43,10 @@ void breakDump(pid_t pid,intptr_t addr){
 		ptrace(PTRACE_POKEDATA,pid,addr,datai3);
 		auto test = ptrace(PTRACE_PEEKDATA,pid,addr,nullptr);
 		if(regs.rip == addr){
-			cout<<"Breakpoint at "<<"0x"<<hex<<regs.rip<<endl;
-
-			
+			cout<<"Breakpoint at "<<"0x"<<hex<<regs.rip<<endl;	
 		}
-		
 		ptrace(PTRACE_GETREGS,pid,0,&regs); // trace all the regs 
 		ptrace(PTRACE_SINGLESTEP,pid,0,0);// go instruction-by-instruction
-		
-
 		rax=regs.rax;
 		rip=regs.rip;
 		rcx=regs.rcx;
@@ -88,7 +83,6 @@ void breakDump(pid_t pid,intptr_t addr){
 	ofstream file("./data/reg.registers");
 	if(file.is_open()){
 		file<<dumper;
-
 	}
 	else{
 		cout<<"Could not open stream."<<endl;
@@ -100,16 +94,12 @@ void breakDump(pid_t pid,intptr_t addr){
 
 void RunExec(string ex){
 	string sh = "./"+ex;
-	
 	ptrace(PTRACE_TRACEME,0,0,NULL); // set process to be traced 
 	execl(sh.c_str(),ex.c_str(),NULL); // run the another process of executable 
 }
 
 
 void checkstuff(intptr_t addr,string exec){
-
-	
-	
 	auto pid = fork();
 	if(pid ==0){
 		personality(ADDR_NO_RANDOMIZE);
@@ -117,10 +107,9 @@ void checkstuff(intptr_t addr,string exec){
 	}
 	else{
 		if(addr==0){
-			
 			cout<<"Provide the address."<<endl;
 			exit(1);
-			
+	
 		}
 		else{
 			breakDump(pid,addr);//run the debugger itself
