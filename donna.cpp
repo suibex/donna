@@ -69,32 +69,16 @@ void SaveJump(string address,vector<pair <string,string > > instructions){
 		adi = address.substr(address.find("jmp 0x")+7);
 	}
 	dumps+="trace "+adi+":\n";
-
-	
-
 	for(int i =0;i<instructs.size();i++){
 		string b = instructs[i].substr(0,instructs[i].find(":"));
-		
-		
-
-	
-		if(b.find(adi)!=string::npos){
-		
+		if(b.find(adi)!=string::npos){	
 			point=i;
-			
-		
 		}
 		if(i>=point){
-			
-			
 			dumps+="\n"+instructs[i];
-	
-		
+
 		}
 	}
-
-
-	
 	string addr = address.substr(address.find(" ")+1);
 	string filename = "./data/"+addr+".dump";
 	ofstream dumper(filename);
@@ -103,7 +87,6 @@ void SaveJump(string address,vector<pair <string,string > > instructions){
 		dumper<<dumps;
 	}
 	dumper.close();
-	
 }
 void disas(char *filename){
 	FILE *a;
@@ -111,10 +94,7 @@ void disas(char *filename){
 	unsigned char dat[2];
 	stringstream ss;
 	vector<string>opcodes;
-
 	vector<pair<string,string> > instructions;
-
-
 	fseek(a,0,SEEK_SET);
 	while(true){
 		int re = fread(dat,sizeof(unsigned char),1,a);
@@ -130,7 +110,6 @@ void disas(char *filename){
 		ss>>t;
 		ss.clear();
 		opcodes.push_back(t);
-
 
 	}
 	//when ASLR is used , you have to find 48 8d 3d and then the number you are adding to the already existing line +7 , and that is main start.
@@ -214,8 +193,6 @@ void disas(char *filename){
 		if(j>=sfh){
 			if(opcodes[j]=="c3"){
 				gz.clear();
-				
-			
 				gz<<hex<<memaddrs;
 				string l;
 				gz>>l;
@@ -369,25 +346,6 @@ void disas(char *filename){
 				string comb = call+f;
 				instructions.push_back(make_pair(l,comb));
 			}
-
-			//add addl instruction and cmp 
-			/*
-				Data:					83 45  01      f0 
- 				83 45 f0 01          	addl   $0x1,-0x10(%rbp)
-  				83 7d f0 09          	cmpl   $0x9,-0x10(%rbp)
-				83 7d f4 05          	cmpl   -0xc(%rbp) , 0x5
-				83 7d f4 00          	cmpl   $0x0,-0xc(%rbp)
-				83 7d f4 04          	cmpl   $0x4,-0xc(%rbp)
-				83 7d f0 09          	cmpl   $0x9,-0x10(%rbp)
-
-				CMP 
-				3b 45 fc             	cmp    %eax,-0x4(%rbp)
-
-				another mov
-				8b 45 f8             	mov    %eax,-0x8(%rbp)
-
-			*/
-		
 			else if(opcodes[j]=="3b" && opcodes[j+1] == "45"){
 				//woho ,eax 
 				gz.clear();
@@ -596,29 +554,12 @@ void disas(char *filename){
 			
 			}
 			
-	
-
 			else if(opcodes[j]=="48"){
 				gz.clear();
 				gz<<hex<<memaddrs;
 				string l;
 				gz>>l;
 				string f,s,call;
-
-				/*
-						lea is only 48 left
-						0  1  2  3  4  5  6
-						48 8d 05 5f 0e 00 00	lea    rax,[rip+0xe5f]  
-						48 8d 05 39 0e 00 00	lea    rax,[rip+0xe39] 
-						48 8d 05 2a 0e 00 00	lea    rax,[rip+0xe2a] 
-						48 8d 05 07 0e 00 00	lea    rax,[rip+0xe07] 
-						
-						1-moving regs
-						2- rax moving 
-						3-rip moving
-						4,5 - values :)
-
-				*/
 				if(opcodes[j+1]=="8d" && opcodes[j+6]=="00" && opcodes[j+5]=="00" ){
 						//lea definitely 
 						//second is rip 
@@ -672,8 +613,6 @@ void disas(char *filename){
 					}
 					
 				}
-					
-				
 				string comb = call+f+s;
 				instructions.push_back(make_pair(l,comb));
 				
@@ -759,10 +698,7 @@ int main(int argc, char *argv[]){
 	}
 
 	stringstream ss;
-
-	
 	intptr_t addr;
-	
 	string cmd = argv[1];
 	if(cmd=="-b" || cmd=="--breakpoint"){
 		if(argc<3){
@@ -793,7 +729,6 @@ int main(int argc, char *argv[]){
 		disas(argv[2]);
 		//checkstuff(addr,argv[1]);
 		dump(argv[2]);
-
 	}
-	
+
 }
