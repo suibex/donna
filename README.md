@@ -25,16 +25,16 @@
     <br>else
     <br>    printf("\nA is negative.\n");
   }
-  
-<h1>Breakpoint from terminal:</h1>
-
-  
-  ![Screenshot from 2022-03-18 15-34-47](https://user-images.githubusercontent.com/59802817/159027995-354c6c41-618c-4b2f-9686-5c84f66b6dbc.png)
 
 
 <br><b>you can also follow traces , branches , etc with donna , as long as it is not too big (max 25 traces) :)</b> </br>
-![Screenshot from 2022-03-18 15-36-11](https://user-images.githubusercontent.com/59802817/159027724-deae82e2-f89e-4433-93e0-6c178613603c.png)
+![Screenshot from 2022-03-21 20-14-28](https://user-images.githubusercontent.com/59802817/159347493-1d5d7515-86e3-4d7f-9cd9-b67047fd7694.png)
 
+  
+<h1>Timeless debugging, no need to set breakpoints.<h1>
+  
+  <br><b>Just press arrow-up to move up a instruction breakpoint , and arrow-down to go back!</b></br>
+![Screenshot from 2022-03-21 20-20-22](https://user-images.githubusercontent.com/59802817/159348174-819172ae-9f4e-40e8-950f-ce5684fcfc82.png)
 
 
 <h3>Limitations of donna:</h3>
