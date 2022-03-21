@@ -4,7 +4,7 @@
 		donna disassembler v1.1
 			-main module
 
-		Last update commited at: Mar 17 22.
+		Last update commited at: Mar 21 22.
 
 		Created by nitrodegen.
 		In labs of cyfly Computer Corporation.
@@ -69,16 +69,32 @@ void SaveJump(string address,vector<pair <string,string > > instructions){
 		adi = address.substr(address.find("jmp 0x")+7);
 	}
 	dumps+="trace "+adi+":\n";
+
+	
+
 	for(int i =0;i<instructs.size();i++){
 		string b = instructs[i].substr(0,instructs[i].find(":"));
-		if(b.find(adi)!=string::npos){	
+		
+		
+
+	
+		if(b.find(adi)!=string::npos){
+		
 			point=i;
+			
+		
 		}
 		if(i>=point){
+			
+			
 			dumps+="\n"+instructs[i];
-
+	
+		
 		}
 	}
+
+
+	
 	string addr = address.substr(address.find(" ")+1);
 	string filename = "./data/"+addr+".dump";
 	ofstream dumper(filename);
@@ -87,6 +103,7 @@ void SaveJump(string address,vector<pair <string,string > > instructions){
 		dumper<<dumps;
 	}
 	dumper.close();
+	
 }
 void disas(char *filename){
 	FILE *a;
@@ -94,7 +111,10 @@ void disas(char *filename){
 	unsigned char dat[2];
 	stringstream ss;
 	vector<string>opcodes;
+
 	vector<pair<string,string> > instructions;
+
+
 	fseek(a,0,SEEK_SET);
 	while(true){
 		int re = fread(dat,sizeof(unsigned char),1,a);
@@ -110,6 +130,7 @@ void disas(char *filename){
 		ss>>t;
 		ss.clear();
 		opcodes.push_back(t);
+
 
 	}
 	//when ASLR is used , you have to find 48 8d 3d and then the number you are adding to the already existing line +7 , and that is main start.
@@ -193,6 +214,8 @@ void disas(char *filename){
 		if(j>=sfh){
 			if(opcodes[j]=="c3"){
 				gz.clear();
+				
+			
 				gz<<hex<<memaddrs;
 				string l;
 				gz>>l;
@@ -346,6 +369,25 @@ void disas(char *filename){
 				string comb = call+f;
 				instructions.push_back(make_pair(l,comb));
 			}
+
+			//add addl instruction and cmp 
+			/*
+				Data:					83 45  01      f0 
+ 				83 45 f0 01          	addl   $0x1,-0x10(%rbp)
+  				83 7d f0 09          	cmpl   $0x9,-0x10(%rbp)
+				83 7d f4 05          	cmpl   -0xc(%rbp) , 0x5
+				83 7d f4 00          	cmpl   $0x0,-0xc(%rbp)
+				83 7d f4 04          	cmpl   $0x4,-0xc(%rbp)
+				83 7d f0 09          	cmpl   $0x9,-0x10(%rbp)
+
+				CMP 
+				3b 45 fc             	cmp    %eax,-0x4(%rbp)
+
+				another mov
+				8b 45 f8             	mov    %eax,-0x8(%rbp)
+
+			*/
+		
 			else if(opcodes[j]=="3b" && opcodes[j+1] == "45"){
 				//woho ,eax 
 				gz.clear();
@@ -554,12 +596,29 @@ void disas(char *filename){
 			
 			}
 			
+	
+
 			else if(opcodes[j]=="48"){
 				gz.clear();
 				gz<<hex<<memaddrs;
 				string l;
 				gz>>l;
 				string f,s,call;
+
+				/*
+						lea is only 48 left
+						0  1  2  3  4  5  6
+						48 8d 05 5f 0e 00 00	lea    rax,[rip+0xe5f]  
+						48 8d 05 39 0e 00 00	lea    rax,[rip+0xe39] 
+						48 8d 05 2a 0e 00 00	lea    rax,[rip+0xe2a] 
+						48 8d 05 07 0e 00 00	lea    rax,[rip+0xe07] 
+						
+						1-moving regs
+						2- rax moving 
+						3-rip moving
+						4,5 - values :)
+
+				*/
 				if(opcodes[j+1]=="8d" && opcodes[j+6]=="00" && opcodes[j+5]=="00" ){
 						//lea definitely 
 						//second is rip 
@@ -613,6 +672,8 @@ void disas(char *filename){
 					}
 					
 				}
+					
+				
 				string comb = call+f+s;
 				instructions.push_back(make_pair(l,comb));
 				
@@ -635,7 +696,8 @@ void disas(char *filename){
 
 	cout<<"\ndonna disassembler v1.1 (text-based only)\n ";
 	//saving and priting some stuff ngl.
-	
+	vector<string>regs;
+
 	vector<string>jumps;
 	cout<<"\nDissassembly of 'main' function:\n"<<endl;
 	string decompiled;
@@ -658,11 +720,21 @@ void disas(char *filename){
 			}
 			
 			if(aslr==true){
-				cout<<"0x000000000000"<<th.first<<":"<<"\t"<<th.second<<endl;
+				
+				stringstream conv;
+				string memaddr = th.first;
+				memaddr.erase(memaddr.begin());
+			
+				memaddr = "0x0000555555555"+memaddr;
+				regs.push_back(memaddr);
+				conv.clear();
+				cout<<memaddr<<":"<<"\t"<<th.second<<endl;
 
-				decompiled+="0x000000000000"+th.first+":"+"\t"+th.second+"\n";
+				decompiled+=memaddr+":"+"\t"+th.second+"\n";
 			}
 			else{
+				string memaddr = "0x000000000040"+th.first;
+				regs.push_back(memaddr);
 				cout<<"0x000000000040"<<th.first<<":"<<"\t"<<th.second<<endl;
 
 				decompiled+="0x000000000040"+th.first+":"+"\t"+th.second+"\n";
@@ -670,6 +742,7 @@ void disas(char *filename){
 			
 		}
 	}
+	
 	//dump the jumps
 	for(int i =0;i<jumps.size();i++){
 		SaveJump(jumps[i],instructions);
@@ -686,40 +759,32 @@ void disas(char *filename){
 	}
 	writer.close();
 
+
+	for(int i =0;i<regs.size();i++){
+		intptr_t addr;
+		string dat = regs[i];
+		stringstream conv;
+		conv<<dat;
+		conv>>hex>>addr;
+		string fil = filename;
+		registerdump(addr,fil);
+		
+		
+	}
+	cout<<"Register data dumped."<<endl;
 	
 
 
 }
 int main(int argc, char *argv[]){
 	if(argc <2){
-		printf("********** donna disassembler man-db **********\n\ti'm not into you, i'm donna :)\nHELP:\n\tIf you want to set a breakpoint , run donna with -b arg.\n\tExample: ./donna -b {filename} {address where to break}\n\tIf you wish to disassemble the file,run donna with -d arg.\n\tExample: ./donna -d {filename}\n\nhave a nice day\n\t-nitrodegen\n");
+		printf("********** donna disassembler man-db **********\n\ti'm not into you, i'm donna :)\nHELP:\n\tIf you want to set a breakpoint,well they are automatically done for you :) \n\tIf you wish to disassemble the file,run donna with -d arg.\n\tExample: ./donna -d {filename}\n\nhave a nice day\n\t-nitrodegen\n");
 		exit(1);
 
 	}
 
-	stringstream ss;
-	intptr_t addr;
 	string cmd = argv[1];
-	if(cmd=="-b" || cmd=="--breakpoint"){
-		if(argc<3){
-			cout<<"Breakpoint runs with: -b {filename} {address where to break}"<<endl;
-		}
-		string addri = argv[3];
-		if(addri.find("0x") != string::npos){
-			string address = addri.substr(addri.find("0x")+2);
-			ss<<address;
-			ss>>hex>>addr;
-		}
-		else{
-			ss<<addri;
-			ss>>hex>>addr;
-		}
-
-		
-		checkstuff(addr,argv[2]);
-		
-	}
-	else if(cmd=="-d" || cmd=="--disassemble" || cmd=="--disas"){
+	if(cmd=="-d" || cmd=="--disassemble" || cmd=="--disas"){
 		
 		if(argc<2){
 			cout<<"Disassembly runs with: -d {filename}"<<endl;
@@ -727,8 +792,9 @@ int main(int argc, char *argv[]){
 		cout<<"****************** donna ELF Config *********************"<<endl;
 		cout<<"ELF File Data:"<<endl;
 		disas(argv[2]);
-		//checkstuff(addr,argv[1]);
-		dump(argv[2]);
-	}
 
+		dump(argv[2]);
+
+	}
+	
 }

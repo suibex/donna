@@ -4,7 +4,7 @@
 		donna disassembler v1.1
 			-web server module
 
-		Last update commited at: Mar 18 22.
+		Last update commited at: Mar 21 22.
 
 		Created by nitrodegen.
 		In labs of cyfly Computer Corporation.
@@ -33,7 +33,7 @@ for file in dir1:
 
     if(".hex" in file):
         hexes.append(file)
-    if(".registers" in file):
+    if(".reg" in file):
         reg.append(file)
 
 
@@ -58,11 +58,7 @@ def hex():
     for h in hexes:
         f = open(f"../data/{h}","r")
         cont = f.read()
-
-       
         
-
-
         data.append(cont)
         f.close()
 
@@ -76,10 +72,8 @@ def regs():
     for r in reg:
         d = open(f"../data/{r}","r")
         data = d.read()
-        ar = data.split("\n")
-        for a in ar:
-            if a != "":
-                cont.append(a)
+        
+        cont.append(data)
 
     return jsonify(cont)
    

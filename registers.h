@@ -5,7 +5,7 @@
 		donna disassembler v1.1
 			-register dump module
 
-		Last update commited at: Mar 17 22.
+		Last update commited at: Mar 21 22.
 
 		Created by nitrodegen.
 		In labs of cyfly Computer Corporation.
@@ -30,20 +30,17 @@ using namespace std;
 void breakDump(pid_t pid,intptr_t addr){
 	long long unsigned int rax,rip,rcx,rbx,rdx,rsi,rdi,rbp,rsp,orax;
 	int stat;
-	// make struct of regs 
-
 	uint64_t int3 = 0xcc;
-
-	wait(&stat); // wait to see what will stack do with stat 
+	wait(&stat);
+	// wait to see if we get response from stack (if process is running or not.)
 	while(WIFSTOPPED(stat)){
 		struct user_regs_struct regs;
 		auto data = ptrace(PTRACE_PEEKDATA,pid,addr,nullptr); // get DATA values of this address
-
-		uint64_t datai3 = ((data& ~0xff) | int3);
-		ptrace(PTRACE_POKEDATA,pid,addr,datai3);
-		auto test = ptrace(PTRACE_PEEKDATA,pid,addr,nullptr);
-		if(regs.rip == addr){
-			cout<<"Breakpoint at "<<"0x"<<hex<<regs.rip<<endl;	
+		uint64_t datai3 = ((data& ~0xff) | int3); // just change values to add at the end xcc (int 3)
+		ptrace(PTRACE_POKEDATA,pid,addr,datai3); // poke data back to memory 
+		auto test = ptrace(PTRACE_PEEKDATA,pid,addr,nullptr); // peek data to see if it fits.
+		if(test == addr){
+			cout<<"ALAAAA";
 		}
 		ptrace(PTRACE_GETREGS,pid,0,&regs); // trace all the regs 
 		ptrace(PTRACE_SINGLESTEP,pid,0,0);// go instruction-by-instruction
@@ -56,50 +53,49 @@ void breakDump(pid_t pid,intptr_t addr){
 		rdi=regs.rdi;
 		rbp=regs.rbp;
 		rsp=regs.rsp;
-		orax=regs.orig_rax;
+		
 		wait(&stat);
+		
 		if(regs.rip == addr+1){
 			break;
-		}
+		}	
 	}
-	//stack pointer does change with execution , cause memory moves arround :) 
-	if(rax ==231){
-		cout<<"\nCould not breakpoint at given address."<<endl;
-		exit(1);
-	}
-	printf("\nrax\t0x%llx\t%lld\nrbx\t0x%llx\t%lld\nrcx\t0x%llx\t%lld\nrdx\t0x%llx\t%lld\nrsi\t0x%llx\t%lld\nrdi\t0x%llx\t%lld\nrbp\t0x%llx\t%lld\nrip\t0x%llx\t%lld\nrsp\t0x%llx\t%lld\n",rax,rax,rbx,rbx,rcx,rcx,rdx,rdx,rsi,rsi,rdi,rdi,rbp,rbp,rip,rip,rsp,rsp);
+
 	char b[99999];
 	stringstream ss;
 	ss<<"0x"<<hex<<addr;
 	string atloc;
 	ss>>atloc;
 	ss.clear();
-	
-
 	sprintf(b,"Breakpoint at %s\nrax\t0x%llx\nrbx\t0x%llx\nrcx\t0x%llx\nrdx\t0x%llx\nrsi\t0x%llx\nrdi\t0x%llx\nrbp\t0x%llx\nrip\t0x%llx\nrsp\t0x%llx\n",atloc.c_str(),rax,rbx,rcx,rdx,rsi,rdi,rbp,rip,rsp);
 	string dumper = b;
-	
+	ss.clear();
+	ss<<addr;
+	string ad;
+	ss>>ad;
+	ss.clear();
 
-	ofstream file("./data/reg.registers");
+	ofstream file("./data/"+ad+".reg");
 	if(file.is_open()){
 		file<<dumper;
 	}
-	else{
-		cout<<"Could not open stream."<<endl;
-		exit(1);
-	}
 	file.close();
 
+	
 }
 
 void RunExec(string ex){
 	string sh = "./"+ex;
+	
 	ptrace(PTRACE_TRACEME,0,0,NULL); // set process to be traced 
 	execl(sh.c_str(),ex.c_str(),NULL); // run the another process of executable 
 }
 
 
-void checkstuff(intptr_t addr,string exec){
+void registerdump(intptr_t addr,string exec){
+
+	
+	
 	auto pid = fork();
 	if(pid ==0){
 		personality(ADDR_NO_RANDOMIZE);
@@ -107,9 +103,10 @@ void checkstuff(intptr_t addr,string exec){
 	}
 	else{
 		if(addr==0){
+			
 			cout<<"Provide the address."<<endl;
 			exit(1);
-	
+			
 		}
 		else{
 			breakDump(pid,addr);//run the debugger itself
