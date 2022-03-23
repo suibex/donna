@@ -22,12 +22,13 @@
 #include <unistd.h>
 #include <sstream>
 #include <random>
-#include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <elf.h>
 #include "dump.h"
 #include "registers.h"
 using namespace std;
@@ -106,16 +107,47 @@ void SaveJump(string address,vector<pair <string,string > > instructions){
 	
 }
 void disas(char *filename){
-	FILE *a;
-	a = fopen(filename,"r");
 	unsigned char dat[2];
 	stringstream ss;
 	vector<string>opcodes;
-
 	vector<pair<string,string> > instructions;
+	Elf64_Ehdr header;
+	Elf64_Phdr phdr;
+	FILE *a = fopen(filename,"rb");
+	fread(&header,1,sizeof(header),a);
+	long long off = header.e_phoff;
+	long long phnum = header.e_phnum;
+	long long startentry =header.e_entry;
+	fseek(a,off,SEEK_SET);
+	unsigned long long int programh=0;
+	while(true){
+		
+		int rea = fread(&header,1,sizeof(header),a);
+		int rf = fread(&phdr,1,sizeof(phdr),a);
+		if((header.e_flags & PF_X)!=0){
+			cout<<"\tFirst executable flag set."<<endl;
+			cout<<"\tProgram header at:0x"<<hex<<phdr.p_offset<<endl;
+			programh+=phdr.p_offset;
+			break;
+		}
+	}
+	ss.clear();
+	ss<<hex<<startentry;
+	string shit;
+	ss>>shit;
+	ss.clear();
+	if(shit[0] == '4' && shit[1] == '0'){
+		shit = shit.substr(shit.find("40")+2);
+		int conv;
+		ss.clear();
+		ss<<shit;
+		ss>>hex>>conv;
+		startentry = conv;
+		
+	}
+	
 
-
-	fseek(a,0,SEEK_SET);
+	fseek(a,startentry,SEEK_SET);
 	while(true){
 		int re = fread(dat,sizeof(unsigned char),1,a);
 		if(re<=0){
@@ -125,6 +157,7 @@ void disas(char *filename){
 		char *b = (char*)malloc(100+sizeof(unsigned char));
 		
 		sprintf(b,"\n%02x\n",dat[0]);
+
 		string t;
 		ss<<b;	
 		ss>>t;
@@ -133,44 +166,29 @@ void disas(char *filename){
 
 
 	}
-	//when ASLR is used , you have to find 48 8d 3d and then the number you are adding to the already existing line +7 , and that is main start.
-	//when no aslr is used , you just find 48,c7 and 6 bits for address of start.
-	//_start is always 45 chars long.
-	//first find the _start , then find the stupid xor , then see where it leads :)
-	int i =opcodes.size();
-	int _startfunc =0;
+
 	string mainHeader;
-	while(true){
-		
-		if(opcodes[i] == "31" && opcodes[i+1] == "ed") {
-			cout<<"\t_start at:"<<"0x"<<hex<<i<<endl;
-			_startfunc=i;//4 out of 45 
-			break;
-		}
-		i--;
-	}
+	int i =0;
 	
-	int len=45;
-
-	//check if aslr or not 
-	//if 21 line is mov and not lea we god false , else it is true
-	int check = _startfunc+20;
-
+	//cout<<opcodes.size()<<endl;
+	int check = 24;
 	if(opcodes[check]=="48" && opcodes[check+1] =="8d"){
 		aslr=true;
-		
-
+		cout<<"\t_start at 0x"<<hex<<startentry<<endl;
 	}
 	else if(opcodes[check] == "48" && opcodes[check+1]=="c7"){
-		aslr=false;
-		
+		aslr=false;	
+		cout<<"\t_start at 0x40"<<hex<<startentry<<endl;
 	}
 	if(aslr == 1){
 		cout<<"\tASLR status:enabled"<<endl;
 	}
 	else{
 		cout<<"\tASLR status:disabled"<<endl;
+		cout<<"donna currently has a problem with non-ASLR files. So recompile file without ASLR please."<<endl;
+		exit(1);
 	}
+	
 	
 	if(aslr == true){
 		stringstream ss;
@@ -199,9 +217,9 @@ void disas(char *filename){
 	
 	//idk why i chose reverse , but i mean every hex i literally just reversed shit.
 	stringstream gz;
-	gz<<mainHeader;
+	gz<<hex<<mainHeader;
 	int sfh;
-	gz>>hex>>sfh;
+	gz>>sfh;
 	gz.clear();
 	i = 0;
 	int memaddrs=0;
@@ -212,7 +230,9 @@ void disas(char *filename){
 		}	
 		memaddrs=j;
 		if(j>=sfh){
+			
 			if(opcodes[j]=="c3"){
+			
 				gz.clear();
 				
 			
@@ -226,28 +246,31 @@ void disas(char *filename){
 			}
 		}
 	}
+
 	if(aslr == true){
 		cout<<"\tmain ends at:"<<"0x"<<hex<<mainend<<endl;
 	}
 	else{
 		cout<<"\tmain ends at:"<<"0x40"<<hex<<mainend<<endl;
 	}	
+
+
 	cout<<"*********************************************************"<<endl;
 	for(int j  = 0;j<opcodes.size();j++){
 		if(opcodes.size()<=0){
 				break;
 		}	
-		memaddrs=j;
+		memaddrs=j+startentry;
 		if(j>=sfh && j<=mainend){
 			//bf 30 00 00 00	mov    edi,0x30
 			//c7 45 f0 00 00 00 00	mov    DWORD PTR [rbp-0x10],0x0
 			//c7 45 f4 05 00 00 00	mov    DWORD PTR [rbp-0xc],0x5
 			//c7 45 fc 05 00 00 00	mov    DWORD PTR [rbp-0x4],0x5
 			
-			
 			if(opcodes[j] =="bf"){
 				gz.clear();
 				gz<<hex<<memaddrs;
+				
 				string l;
 				gz>>l;
 				string f,s,call;
@@ -370,24 +393,7 @@ void disas(char *filename){
 				instructions.push_back(make_pair(l,comb));
 			}
 
-			//add addl instruction and cmp 
-			/*
-				Data:					83 45  01      f0 
- 				83 45 f0 01          	addl   $0x1,-0x10(%rbp)
-  				83 7d f0 09          	cmpl   $0x9,-0x10(%rbp)
-				83 7d f4 05          	cmpl   -0xc(%rbp) , 0x5
-				83 7d f4 00          	cmpl   $0x0,-0xc(%rbp)
-				83 7d f4 04          	cmpl   $0x4,-0xc(%rbp)
-				83 7d f0 09          	cmpl   $0x9,-0x10(%rbp)
-
-				CMP 
-				3b 45 fc             	cmp    %eax,-0x4(%rbp)
-
-				another mov
-				8b 45 f8             	mov    %eax,-0x8(%rbp)
-
-			*/
-		
+			//add addl instruction and cmp
 			else if(opcodes[j]=="3b" && opcodes[j+1] == "45"){
 				//woho ,eax 
 				gz.clear();
@@ -474,6 +480,35 @@ void disas(char *filename){
 				}
 				string comb = call+f+s;
 				instructions.push_back(make_pair(l,comb));
+			}
+			else if(opcodes[j] == "64" && opcodes[j+1] == "48" && opcodes[j+2] == "8b" && opcodes[j+3] == "04" && opcodes[j+4] == "25"  && opcodes[j+5] == "28" ){//jmp 
+				gz.clear();
+				gz<<hex<<memaddrs;
+				string l;
+				gz>>l;
+				gz.clear();
+
+				instructions.push_back(make_pair(l,"mov\trax,qword(fs:0x28)"));
+			}
+			else if(opcodes[j] == "64" && opcodes[j+1] == "48" && opcodes[j+2] == "2b" && opcodes[j+3] == "14" && opcodes[j+4] == "25" && opcodes[j+5] == "28" ){
+				//jmp 
+				gz.clear();
+				gz<<hex<<memaddrs;
+				string l;
+				gz>>l;
+				gz.clear();
+
+				instructions.push_back(make_pair(l,"sub\trdx,qword(fs:0x28)"));
+			}
+			else if(opcodes[j] == "31" && opcodes[j+1] == "c0" ){
+				//jmp 
+				gz.clear();
+				gz<<hex<<memaddrs;
+				string l;
+				gz>>l;
+				gz.clear();
+
+				instructions.push_back(make_pair(l,"xor\trax,rax"));
 			}
 			else if(opcodes[j] == "74" && opcodes[j+1] != "fe" && opcodes[j+1] != "ff" && opcodes[j+2] != "ff" ){
 				//jmp 
@@ -605,20 +640,7 @@ void disas(char *filename){
 				gz>>l;
 				string f,s,call;
 
-				/*
-						lea is only 48 left
-						0  1  2  3  4  5  6
-						48 8d 05 5f 0e 00 00	lea    rax,[rip+0xe5f]  
-						48 8d 05 39 0e 00 00	lea    rax,[rip+0xe39] 
-						48 8d 05 2a 0e 00 00	lea    rax,[rip+0xe2a] 
-						48 8d 05 07 0e 00 00	lea    rax,[rip+0xe07] 
-						
-						1-moving regs
-						2- rax moving 
-						3-rip moving
-						4,5 - values :)
-
-				*/
+				
 				if(opcodes[j+1]=="8d" && opcodes[j+6]=="00" && opcodes[j+5]=="00" ){
 						//lea definitely 
 						//second is rip 
@@ -627,7 +649,7 @@ void disas(char *filename){
 							//rax is first
 							f="\trax";
 							string h = opcodes[j+4].substr(opcodes[j+4].find("0")+1)+opcodes[j+3];
-							s=",[rip+0"+h+"]";
+							s=",[rip+0x"+h+"]";
 
 						}
 				}
@@ -645,6 +667,12 @@ void disas(char *filename){
 						s = ",rax";
 
 					}
+					if(opcodes[j+2]=="c6"){
+						//mov    rdi,rax
+						f="\trsi";
+						s = ",rax";
+
+					}
 					if(opcodes[j+2]=="45"){
 						//mov    rdi,rax
 						if(opcodes[j+3].find("f") != string::npos){
@@ -657,6 +685,28 @@ void disas(char *filename){
 							f="\t0x"+opcodes[i+3];
 						}
 						s = ",rax";
+						
+
+					}
+					
+
+				}
+				if(opcodes[j+1] == "8b"){
+					// movin between registers
+					call="mov";
+					
+					if(opcodes[j+2]=="55"){
+						//mov    rdi,rax
+						if(opcodes[j+3].find("f") != string::npos){
+							string num = opcodes[j+3].substr(opcodes[j+3].find("f")+1);
+						
+					
+							s =",qword[rbp-0x"+num+"]";
+						}
+						else{
+							s=",0x"+opcodes[i+3];
+						}
+						f = "\trdx";
 						
 
 					}
@@ -696,7 +746,7 @@ void disas(char *filename){
 
 	cout<<"\ndonna disassembler v1.1 (text-based only)\n ";
 	//saving and priting some stuff ngl.
-	vector<string>regs;
+	vector<intptr_t>regs;
 
 	vector<string>jumps;
 	cout<<"\nDissassembly of 'main' function:\n"<<endl;
@@ -721,23 +771,46 @@ void disas(char *filename){
 			
 			if(aslr==true){
 				
-				stringstream conv;
-				string memaddr = th.first;
-				memaddr.erase(memaddr.begin());
-			
-				memaddr = "0x0000555555555"+memaddr;
-				regs.push_back(memaddr);
-				conv.clear();
-				cout<<memaddr<<":"<<"\t"<<th.second<<endl;
+				if(th.second != " "){
+					stringstream conv;
+					string memaddr = th.first;
+					memaddr.erase(memaddr.begin());
+				
+					memaddr = "0x0000555555555"+memaddr;
 
-				decompiled+=memaddr+":"+"\t"+th.second+"\n";
+					ss.clear();
+					intptr_t addr;
+					string dat = memaddr;
+					
+					conv<<dat;
+					conv>>hex>>addr;
+					
+					regs.push_back(addr);
+					conv.clear();
+
+					cout<<memaddr<<":"<<"\t"<<th.second<<endl;
+
+					decompiled+=memaddr+":"+"\t"+th.second+"\n";
+				}
+
+				
 			}
 			else{
-				string memaddr = "0x000000000040"+th.first;
-				regs.push_back(memaddr);
-				cout<<"0x000000000040"<<th.first<<":"<<"\t"<<th.second<<endl;
+				if(th.second != " "){
+					string memaddr = "0x000000000040"+th.first;
+					intptr_t addr;
+					string dat = memaddr;
+					stringstream conv;
+					conv<<dat;
+					conv>>hex>>addr;
+					
+					regs.push_back(addr);
+					conv.clear();
+					cout<<th.first<<":"<<"\t"<<th.second<<endl;
 
-				decompiled+="0x000000000040"+th.first+":"+"\t"+th.second+"\n";
+					decompiled+="0x000000000040"+th.first+":"+"\t"+th.second+"\n";
+				}
+
 			}
 			
 		}
@@ -759,18 +832,13 @@ void disas(char *filename){
 	}
 	writer.close();
 
-
+	string fil = filename;
 	for(int i =0;i<regs.size();i++){
-		intptr_t addr;
-		string dat = regs[i];
-		stringstream conv;
-		conv<<dat;
-		conv>>hex>>addr;
-		string fil = filename;
-		registerdump(addr,fil);
-		
-		
+		registerdump(regs[i],fil);
 	}
+		
+		
+	
 	cout<<"Register data dumped."<<endl;
 	
 
