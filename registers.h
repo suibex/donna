@@ -2,8 +2,8 @@
 /*
 *******************************************************************************************************************************************
 
-		donna disassembler v1.1
-			-register dump module
+		donna disassembler v2.0
+		-register dump module
 
 		Last update commited at: April 22 22.
 		Created by nitrodegen.
