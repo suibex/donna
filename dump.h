@@ -4,7 +4,7 @@
 		donna disassembler v1.1
 			-dump module
 
-		Last update commited at: Mar 21 22.
+		Last update commited at: April 22 22.
 
 		Created by nitrodegen.
 		In labs of cyfly Computer Corporation.
@@ -66,7 +66,7 @@ void dump(string file){
 		dumped+=t;
 	}
 	vector<string>hexi = split(dumped,10);
-	ofstream hexdump("./data/hex.hex");
+	ofstream hexdump("/var/tmp/donna/hex.hex");
 	for(int i=0;i<hexi.size();i++){
 		stringstream ss;
 		ss<<hex<<i;

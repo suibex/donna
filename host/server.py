@@ -22,8 +22,7 @@ log.setLevel(logging.ERROR)
 
 dis=sys.argv[1]
 
-
-dir1 = os.listdir("../data")
+dir1 = os.listdir("/var/tmp/donna")
 hexes=[]
 dumps=[]
 reg=[]
@@ -47,7 +46,7 @@ def main():
 @app.route("/main",methods=["GET","POST"])
 def da2():
     file = sys.argv[1]+".gpd"
-    d = open(f"../data/{file}","r")
+    d = open(f"/var/tmp/donna/{file}","r")
     data = d.read().split("\n")
     return jsonify(data)
     
@@ -56,7 +55,7 @@ def da2():
 def hex():
     data=[]
     for h in hexes:
-        f = open(f"../data/{h}","r")
+        f = open(f"/var/tmp/donna/{h}","r")
         cont = f.read()
         
         data.append(cont)
@@ -70,7 +69,7 @@ def hex():
 def regs():
     cont=[]
     for r in reg:
-        d = open(f"../data/{r}","r")
+        d = open(f"/var/tmp/donna/{r}","r")
         data = d.read()
         
         cont.append(data)
@@ -83,7 +82,7 @@ def regs():
 def da1():
     data=[]
     for dump in dumps:
-        f = open(f"../data/{dump}","r")
+        f = open(f"/var/tmp/donna/{dump}","r")
         cont = f.read()
         cont = cont.split("\n")
         coci=""

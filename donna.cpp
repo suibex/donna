@@ -4,7 +4,7 @@
 		donna disassembler v1.1
 			-main module
 
-		Last update commited at: Mar 23 22.
+		Last update commited at: April 22 22.
 
 		Created by nitrodegen.
 		In labs of cyfly Computer Corporation.
@@ -148,18 +148,18 @@ void disas(char *filename){
 	
 
 	fseek(a,startentry,SEEK_SET);
+	FILE *b = fopen(filename,"r");
+
 	while(true){
-		int re = fread(dat,sizeof(unsigned char),1,a);
+		int re = fread(dat,sizeof(unsigned char),1,b);
 		if(re<=0){
 			break;
 
 		}
-		char *b = (char*)malloc(100+sizeof(unsigned char));
-		
-		sprintf(b,"\n%02x\n",dat[0]);
-
+		char *j = (char*)malloc(100+sizeof(unsigned char));
+		sprintf(j,"%02x",dat[0]);
 		string t;
-		ss<<b;	
+		ss<<j;	
 		ss>>t;
 		ss.clear();
 		opcodes.push_back(t);
@@ -167,11 +167,8 @@ void disas(char *filename){
 
 	}
 
-	string mainHeader;
-	int i =0;
-	
-	//cout<<opcodes.size()<<endl;
-	int check = 24;
+
+	int check = startentry+24;
 	if(opcodes[check]=="48" && opcodes[check+1] =="8d"){
 		aslr=true;
 		cout<<"\t_start at 0x"<<hex<<startentry<<endl;
@@ -185,14 +182,12 @@ void disas(char *filename){
 	}
 	else{
 		cout<<"\tASLR status:disabled"<<endl;
-		cout<<"donna currently has a problem with non-ASLR files. So recompile file without ASLR please."<<endl;
-		exit(1);
-	}
-	
-	
-	if(aslr == true){
-		stringstream ss;
+	}	
+	stringstream gz;
 
+	string mainHeader;
+	if(aslr == true){
+		ss.clear();	
 		string toadd = opcodes[check+3];
 		ss<<toadd;
 		int g;
@@ -215,54 +210,41 @@ void disas(char *filename){
 		cout<<"\tmain at:"<<"0x40"<<mainHeader<<endl;
 	}
 	
-	//idk why i chose reverse , but i mean every hex i literally just reversed shit.
-	stringstream gz;
-	gz<<hex<<mainHeader;
-	int sfh;
-	gz>>sfh;
-	gz.clear();
-	i = 0;
+
+	mainHeader = "0x"+mainHeader;
+	ss.clear();
+	int fin=0;
+	ss<<mainHeader;
+	ss>>hex>>fin;
+
+	string endfunc;
+	cout<<fin<<endl;
+
 	int memaddrs=0;
-	int mainend=0;
-	for(int j  = 0;j<opcodes.size();j++){
-		if(opcodes.size()<=0){
+
+
+	for(int i =fin;i<opcodes.size();i++){
+		
+		if(i>(fin+4)){
+			if(opcodes[i] == "f3" && opcodes[i+1] == "0f" && opcodes[i+2] == "1e"){
+				endfunc = to_string(i-2);
 				break;
-		}	
-		memaddrs=j;
-		if(j>=sfh){
-			
-			if(opcodes[j]=="c3"){
-			
-				gz.clear();
-				
-			
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				
-				mainend=memaddrs;
-				break;
-				
 			}
 		}
 	}
-
-	if(aslr == true){
-		cout<<"\tmain ends at:"<<"0x"<<hex<<mainend<<endl;
-	}
-	else{
-		cout<<"\tmain ends at:"<<"0x40"<<hex<<mainend<<endl;
-	}	
-
+	int mainend = stoi(endfunc);
+	int sfh = fin;
 
 	cout<<"*********************************************************"<<endl;
 	for(int j  = 0;j<opcodes.size();j++){
 		if(opcodes.size()<=0){
 				break;
 		}	
-		memaddrs=j+startentry;
+		memaddrs = j;
+
 		if(j>=sfh && j<=mainend){
-			//bf 30 00 00 00	mov    edi,0x30
+			
+										//bf 30 00 00 00	mov    edi,0x30
 			//c7 45 f0 00 00 00 00	mov    DWORD PTR [rbp-0x10],0x0
 			//c7 45 f4 05 00 00 00	mov    DWORD PTR [rbp-0xc],0x5
 			//c7 45 fc 05 00 00 00	mov    DWORD PTR [rbp-0x4],0x5
@@ -682,7 +664,7 @@ void disas(char *filename){
 							f ="\tqword[rbp-0x"+num+"]";
 						}
 						else{
-							f="\t0x"+opcodes[i+3];
+							f="\t0x"+opcodes[j+3];
 						}
 						s = ",rax";
 						
@@ -704,7 +686,7 @@ void disas(char *filename){
 							s =",qword[rbp-0x"+num+"]";
 						}
 						else{
-							s=",0x"+opcodes[i+3];
+							s=",0x"+opcodes[j+3];
 						}
 						f = "\trdx";
 						
@@ -815,13 +797,13 @@ void disas(char *filename){
 			
 		}
 	}
-	
+
 	//dump the jumps
 	for(int i =0;i<jumps.size();i++){
 		SaveJump(jumps[i],instructions);
 	}
 	string f=filename;
-	f = "./data/"+f.substr(0,f.find(".c"))+".gpd";
+	f = "/var/tmp/donna/"+f.substr(0,f.find(".c"))+".gpd";
 	ofstream writer(f);
 	if(writer.is_open()){
 		writer<<decompiled;
@@ -833,21 +815,20 @@ void disas(char *filename){
 	writer.close();
 
 	string fil = filename;
-	for(int i =0;i<regs.size();i++){
-		registerdump(regs[i],fil);
-	}
-		
+	  
+    registerdump(regs,fil);
+
 		
 	
 	cout<<"Register data dumped."<<endl;
-	
+
 
 
 }
 int main(int argc, char *argv[]){
 	if(argc <2){
-		printf("********** donna disassembler man-db **********\n\ti'm not into you, i'm donna :)\nHELP:\n\tIf you want to set a breakpoint,well they are automatically done for you :) \n\tIf you wish to disassemble the file,run donna with -d arg.\n\tExample: ./donna -d {filename}\n\nhave a nice day\n\t-nitrodegen\n");
-		exit(1);
+		printf("********** donna disassembler man-db **********\n\ti'm not into you, i'm donna :)\nHELP:\n\tIf you want to set a breakpoint,well they are automatically done for you :) \n\tIf you wish to disassemble the file,run donna with filename arg.\n\tExample: ./donna {filename}\n\nhave a nice day\n\t-nitrodegen\n");
+    exit(1);
 
 	}
 
@@ -859,8 +840,7 @@ int main(int argc, char *argv[]){
 		}
 		cout<<"****************** donna ELF Config *********************"<<endl;
 		cout<<"ELF File Data:"<<endl;
-		disas(argv[2]);
-
+    disas(argv[2]);
 		dump(argv[2]);
 
 	}

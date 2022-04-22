@@ -21,16 +21,17 @@ from time import sleep
 
 def remove():
   
-    os.chdir("./data")
+    os.chdir("/var/tmp/donna")
     dat = os.listdir()
     for i in dat:
         os.remove(i)
 
 
-def web():
+def web(fi):
+   
     os.chdir("./host")
-    os.system(f"python3 server.py {dir}")
-
+    
+    os.system(f"python3 server.py {fi}")
     print("Server closed.")
     remove()
 
@@ -38,24 +39,23 @@ if(len(sys.argv)<2):
     print("********** donna disassembler webserver **********\n\ti'm not into you, i'm donna :)\nHELP:\n\tThis is what i call a fancier way to use this tool.\n\tRun it like this: sudo python3 donna.py [filename]\n\tSoon after that you will be dropped into 'donna shell' and you can set stuff from there.")
     sys.exit(1)
 
-t =Process(target = web)
+t =Process(target = web,args=(sys.argv[1],))
 t.daemon = True
-
 def cmdLine():
     global t
     print("********** donna disassembler shell ************\n\tTHIS SHELL IS USED TO SET BREAKPOINT EASIER WHILE RUNNING ON THE WEB.\n\tSet the breakpoint with :breakpoint,br,b and provide the address.") 
     while True:
         msg = input("<donna>")
         if("list" in msg):
-            d = os.listdir("data")
+            d = os.listdir("/usr/tmp/donna")
             for i in range(len(d)):
                 if(".reg" in d[i]):
                     print(d[i])
         if("breakpoints" in msg or "b" in msg or "break" in msg):
             add = msg.split("*")
-            d = os.listdir("data")
+            d = os.listdir("/usr/tmp/donna/")
             if(add[1] in d):
-                f = open("./data/"+add[1],"r")
+                f = open("/usr/tmp/donna/"+add[1],"r")
                 cont = f.read()
                 print(cont)
         if("clear" ==msg):
@@ -72,19 +72,30 @@ def cmdLine():
             
             
 
+if(os.geteuid() !=0):
+    print("donna has to be run as root.\nre-run donna with sudo!")
+    sys.exit(1)
 
-dir = sys.argv[1]
-print(os.getcwd())
-os.system(f"./donna -d {dir}")
-sleep(0.5)
-print("Disassembled.")
+else:
+    if(len(sys.argv)>=2):
+        os.system("mkdir /var/tmp/donna")
+        dirz = sys.argv[1]
+        print(os.getcwd())
+        os.system("echo 0 > /proc/sys/kernel/randomize_va_space")
 
+        os.system(f"./donna-debug -d {dirz}")
+        sleep(0.5)
+        os.system("echo 1 > /proc/sys/kernel/randomize_va_space")
+        print("Disassembled.")
+       
+        t.start()
+        sleep(0.5)
 
-t.start()
-sleep(0.5)
+        cmdLine()
+    else:
+        os.system("./donna-debug")
 
-cmdLine()
-   
+           
 
 
   
