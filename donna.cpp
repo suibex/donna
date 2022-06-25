@@ -1,11 +1,10 @@
 /*
 *******************************************************************************************************************************************
 
-		donna disassembler v2.0
+		donna disassembler v3.0
 			-main module
 
-		Last update commited at: April 22 22.
-
+		Last update commited at: June 25 22
 		Created by nitrodegen.
 		In labs of cyfly Computer Corporation.
 
@@ -21,6 +20,7 @@
 #include <vector>
 #include <unistd.h>
 #include <sstream>
+#include <sys/mman.h>
 #include <random>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -71,31 +71,16 @@ void SaveJump(string address,vector<pair <string,string > > instructions){
 	}
 	dumps+="trace "+adi+":\n";
 
-	
-
 	for(int i =0;i<instructs.size();i++){
 		string b = instructs[i].substr(0,instructs[i].find(":"));
-		
-		
-
-	
-		if(b.find(adi)!=string::npos){
-		
+		if(b.find(adi)!=string::npos){	
 			point=i;
-			
-		
 		}
-		if(i>=point){
-			
-			
+		if(i>=point){	
 			dumps+="\n"+instructs[i];
-	
-		
 		}
 	}
 
-
-	
 	string addr = address.substr(address.find(" ")+1);
 	string filename = "./data/"+addr+".dump";
 	ofstream dumper(filename);
@@ -106,634 +91,645 @@ void SaveJump(string address,vector<pair <string,string > > instructions){
 	dumper.close();
 	
 }
+vector<int> MainOffset(string filename){
+	int res =0 ;
+	int FOF=0;
+	struct stat st;
+	stat(filename.c_str(),&st);
+	int size = st.st_size;
+	int fd = open(filename.c_str(),O_RDONLY);
+	char* p = (char*)mmap(0,size,PROT_READ,MAP_PRIVATE,fd,0);
+	Elf64_Ehdr *ehdr  = (Elf64_Ehdr*)p ;
+	Elf64_Shdr *shdr =  (Elf64_Shdr*)(p+ehdr->e_shoff);
+	Elf64_Shdr *shr = &shdr[ehdr->e_shstrndx];
+	const char *const shstrp  = p+shr->sh_offset;
+	for(int i =0;i<ehdr->e_shnum;i++){
+		string n = shstrp+shdr[i].sh_name;;
+		if(n == ".text"){
+
+			res = shdr[i].sh_addr;
+			FOF = shdr[i].sh_size;
+			break;
+		
+		}
+	}
+		
+	stringstream ss;
+	ss<<hex<<res;
+	string tete(ss.str());
+	cout.clear();
+	string ff ="";
+	if(tete[0] == '4' && tete[1] == '0'){
+		ff+= tete.substr(tete.find("40")+2);
+	}
+
+	else{
+		ff += tete;
+	}
+	int lol;
+	res=0;
+	ff ="0x"+ff;	
+	stringstream bb;
+	bb<<ff;
+	bb>>hex>>lol;
+	res = lol;
+	vector<int>wow;
+	wow.push_back(res);
+	wow.push_back(res+FOF);
+	return wow;
+
+}
 void disas(char *filename){
+	stringstream gz;
 	unsigned char dat[2];
 	stringstream ss;
 	vector<string>opcodes;
 	vector<pair<string,string> > instructions;
-	Elf64_Ehdr header;
-	Elf64_Phdr phdr;
-	FILE *a = fopen(filename,"rb");
-	fread(&header,1,sizeof(header),a);
-	long long off = header.e_phoff;
-	long long phnum = header.e_phnum;
-	long long startentry =header.e_entry;
-	fseek(a,off,SEEK_SET);
-	unsigned long long int programh=0;
-	while(true){
-		
-		int rea = fread(&header,1,sizeof(header),a);
-		int rf = fread(&phdr,1,sizeof(phdr),a);
-		if((header.e_flags & PF_X)!=0){
-			cout<<"\tFirst executable flag set."<<endl;
-			cout<<"\tProgram header at:0x"<<hex<<phdr.p_offset<<endl;
-			programh+=phdr.p_offset;
-			break;
-		}
+	int cc =0;
+	stringstream sb;
+	ifstream stream(filename);
+	sb<<stream.rdbuf();
+	string rawdata(sb.str());
+	for(int i =0;i<rawdata.length();i++){
+		unsigned char ch= rawdata[i];
+		char *bob = (char*)malloc(sizeof(unsigned char)*2);
+
+        sprintf(bob,"%02x",ch);
+		opcodes.push_back(bob);
+		free(bob);
 	}
-	ss.clear();
-	ss<<hex<<startentry;
-	string shit;
-	ss>>shit;
-	ss.clear();
-	if(shit[0] == '4' && shit[1] == '0'){
-		shit = shit.substr(shit.find("40")+2);
-		int conv;
-		ss.clear();
-		ss<<shit;
-		ss>>hex>>conv;
-		startentry = conv;
-		
-	}
+
+	vector<int> maininfo = MainOffset(filename);
+	int sfh = maininfo[0];
+	int mainend = maininfo[1];
 	
 
-	fseek(a,startentry,SEEK_SET);
-	FILE *b = fopen(filename,"r");
-
-	while(true){
-		int re = fread(dat,sizeof(unsigned char),1,b);
-		if(re<=0){
-			break;
-
-		}
-		char *j = (char*)malloc(100+sizeof(unsigned char));
-		sprintf(j,"%02x",dat[0]);
-		string t;
-		ss<<j;	
-		ss>>t;
-		ss.clear();
-		opcodes.push_back(t);
-
-
-	}
-
-
-	int check = startentry+24;
-	if(opcodes[check]=="48" && opcodes[check+1] =="8d"){
-		aslr=true;
-		cout<<"\t_start at 0x"<<hex<<startentry<<endl;
-	}
-	else if(opcodes[check] == "48" && opcodes[check+1]=="c7"){
-		aslr=false;	
-		cout<<"\t_start at 0x40"<<hex<<startentry<<endl;
-	}
-	if(aslr == 1){
-		cout<<"\tASLR status:enabled"<<endl;
-	}
-	else{
-		cout<<"\tASLR status:disabled"<<endl;
-	}	
-	stringstream gz;
-
-	string mainHeader;
-	if(aslr == true){
-		ss.clear();	
-		string toadd = opcodes[check+3];
-		ss<<toadd;
-		int g;
-		ss>>hex>>g;
-		// 00 00 00 1 = 2 + 2 + 2 + 1 = 7
-		g+=7;
-		ss.clear();
-		int fi = g+check;
-		ss<<fi;
-		string calculated;
-		ss>>calculated;
-		ss.clear();
-		
-		mainHeader=calculated;
-		cout<<"\tmain at:"<<"0x"<<mainHeader<<endl;
-	}
-	else{
-		// example : 0x401190 was in hex = 90 11 40 so just reversing it , you get the address :)
-		mainHeader=opcodes[check+4]+opcodes[check+3];
-		cout<<"\tmain at:"<<"0x40"<<mainHeader<<endl;
-	}
+	cout<<opcodes.size()<<endl;
 	
-
-	mainHeader = "0x"+mainHeader;
-	ss.clear();
-	int fin=0;
-	ss<<mainHeader;
-	ss>>hex>>fin;
-
-	string endfunc;
-	cout<<fin<<endl;
-
-	int memaddrs=0;
-
-
-	for(int i =fin;i<opcodes.size();i++){
-		
-		if(i>(fin+4)){
-			if(opcodes[i] == "f3" && opcodes[i+1] == "0f" && opcodes[i+2] == "1e"){
-				endfunc = to_string(i-2);
-				break;
-			}
-		}
-	}
-	int mainend = stoi(endfunc);
-	int sfh = fin;
-
+	int memaddrs = 0;
 	cout<<"*********************************************************"<<endl;
-	for(int j  = 0;j<opcodes.size();j++){
+	for(int i  = 0;i<opcodes.size();i++){
 		if(opcodes.size()<=0){
 				break;
 		}	
-		memaddrs = j;
-
-		if(j>=sfh && j<=mainend){
+		memaddrs = i;
+		if(i>=sfh && i<=mainend){
+			cout<<opcodes[i]<<":"<<opcodes[i+1]<<endl;
+			//mov add sub mul , call , push,pop,stack,pop , jmp ,inc ,find all regs
+			string opcode,oprand1,oprand2,fin;
 			
-										//bf 30 00 00 00	mov    edi,0x30
-			//c7 45 f0 00 00 00 00	mov    DWORD PTR [rbp-0x10],0x0
-			//c7 45 f4 05 00 00 00	mov    DWORD PTR [rbp-0xc],0x5
-			//c7 45 fc 05 00 00 00	mov    DWORD PTR [rbp-0x4],0x5
-			
-			if(opcodes[j] =="bf"){
-				gz.clear();
-				gz<<hex<<memaddrs;
-				
-				string l;
-				gz>>l;
-				string f,s,call;
-				call="mov";
-				if(opcodes[j+2] == "00" && opcodes[j+4]== "00"){
-					
-					//well edi burazer
-					f = "\tedi";
-					s = ",0x"+opcodes[j+1];
-					
-				}
-				string comb = call+f+s;
-				instructions.push_back(make_pair(l,comb));
-				
-			}
-			else if(opcodes[j] == "e8"){
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-				string f,call;
-				call="call";
-				if(opcodes[j+1] == "bc"){
-					f="\t<printf@plt>";
-				}
-				else if(opcodes[j+1] == "91"){
-					f="\t<printf@plt>";
-				}
-				else if(opcodes[j+1] == "77"){
-					f="\t<printf@plt>";
-				}
-				else if(opcodes[j+1] == "47"){
-					f="\t<putchar@plt>";
-				}
-				else if(opcodes[j+1] == "51"){
-					f="\t<printf@plt>";
-				}
-				else if(opcodes[j+1] == "c4"){
-					f="\t<printf@plt>";
-				}
-				else if(opcodes[j+1] == "da"){
-					f="\t<printf@plt>";
-				}
-				else{
-					f="\t<function@{at address}>";
-				}
-				
-				//4470 //4660 / 190 lines diffrence -26 diff / WHAT THE FUCK???
-
-
-
-
-
-				string comb = call+f;
-				instructions.push_back(make_pair(l,comb));
-			}
-			else if(opcodes[j] == "eb" && opcodes[j+1] != "fe" && opcodes[j+1] != "ff" && opcodes[j+2] != "ff"){
-				//jmp 
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-				string f,call;
 		
-				//eb 18	jmp    0x4011c8 <main+56>
-				stringstream lol;
-				lol<<opcodes[j+1];
-				int zozi;
-				lol>>hex>>zozi;
-				lol.clear();
+			if(opcodes[i] == "55"){
+				
+				opcode = "push";
+				oprand1 = "rbp";
+				fin=oprand1;	
 
-				int zfl = zozi+memaddrs+2;
-				lol<<hex<<zfl;
-				lol>>f;
-				if(aslr == true){
-					f = "\t0x"+f;
+			}
+			if(opcodes[i]== "5d"){
+				opcode="pop";
+				fin = "rbp";
+			}
+			if(opcodes[i]== "59"){
+				opcode="pop";
+				fin = "rcx";
+			}
+			if(opcodes[i]== "5e"){
+				opcode="pop";
+				fin = "rsi";
+			}
+			if(opcodes[i]== "5b"){
+				opcode="pop";
+				fin = "rbx";
+			}
+			if(opcodes[i]== "5c"){
+				opcode="pop";
+				fin = "rsp";
+			}
+			if(opcodes[i]== "58"){
+				opcode="pop";
+				fin = "rax";
+			}
+			if(opcodes[i]== "5f"){
+				opcode="pop";
+				fin = "rdi";
+			}
+			if(opcodes[i]== "5a"){
+				opcode="pop";
+				fin = "rdx";
+			}
+			if(opcodes[i] =="0f" && opcodes[i+1]== "05"){
+				opcode = "syscall";
+				fin = " ";
+
+			}
+			if(opcodes[i] == "6a"){
+				opcode = "push";
+				oprand1 = "0x"+opcodes[i+1];
+				fin = oprand1;
+			}
+			if(opcodes[i] == "7e"){
+				opcode = "jle";
+				ss.clear();
+				int re=0;
+				ss<<opcodes[i+1];
+				ss>>hex>>re;
+				re +=sfh;
+				ss.clear();
+				string lol="";
+				ss<<hex<<re;
+				ss>>lol;
+				oprand1 ="0x"+lol;
+				fin = oprand1;
+			}
+			if(opcodes[i] == "75"){
+				opcode = "jne";
+				ss.clear();
+				int re=0;
+				ss<<opcodes[i+1];
+				ss>>hex>>re;
+				re +=sfh;
+				ss.clear();
+				string lol="";
+				ss<<hex<<re;
+				ss>>lol;
+				oprand1 ="0x"+lol;
+				fin = oprand1;
+			}
+			if(opcodes[i] == "48" && opcodes[i+1] == "ff"){
+				opcode ="inc";
+				string mb = opcodes[i+2];
+				if(mb == "c0"){
+					fin = "rax";
+
 				}
-				else{
-					f = "\t0x40"+f;
+				if(mb == "c1"){
+					fin = "rcx";
+
+				}
+				if(mb == "c2"){
+					fin = "rdx";
+
+				}
+				if(mb == "c3"){
+					fin = "rbx";
+
+				}
+				if(mb == "c4"){
+					fin = "rsp";
+
+				}
+				if(mb == "c5"){
+					fin = "rbp";
+
+				}
+				if(mb == "c6"){
+					fin = "rsi";
+
+				}
+				if(mb == "c7"){
+					fin = "rdi";
+
 				}
 			
-	
-				call="jmp";
-				
-				string comb = call+f;
-				instructions.push_back(make_pair(l,comb));
+
 			}
-			else if(opcodes[j] == "7e" && opcodes[j+1] != "fe" && opcodes[j+1] != "ff" && opcodes[j+2] != "ff" ){
-				//jmp 
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-				string f,call;
+			if(opcodes[i] == "48" && opcodes[i+1] == "01"){
+				string combo = opcodes[i+2];
+				string mb = opcodes[i+1];
+			
+				
+				opcode ="add";
+				
+				if(combo == "ec"){
+					fin = "rsp, rbp";
+				}
+				
+				if(combo == "c7"){
+					fin = "rdi, rax";
+				}
+				if(combo == "e0"){
+					fin = "rax,rsp";
+				}
+				if(combo == "e8"){
+					fin = "rax,rbp";
+				}
+				if(combo == "c8"){
+					fin = "rax,rcx";
+				}
+				if(combo == "c0"){
+					fin = "rax,rax";
+				}
+				if(combo == "d0"){
+					fin = "rax,rdx";
+				}
+
+				if(combo == "d8"){
+					fin = "rax,rbx";
+				}
+				if(combo == "f0"){
+					fin = "rax,rsi";
+				}
+				if(combo == "f8"){
+					fin = "rax,rdi";
+				}
+
+				if(combo == "c7"){
+					fin = "rdi,rax";
+				}
+				if(combo == "fc"){
+					fin = "rsp,rdi";
+				}	
+				
+			}
+			if(opcodes[i] == "48" && opcodes[i+1] == "29"){
+				string combo = opcodes[i+2];
+				string mb = opcodes[i+1];
+				opcode ="sub";
+				
+				if(combo == "ec"){
+					fin = "rsp, rbp";
+				}
+				
+				if(combo == "c7"){
+					fin = "rdi, rax";
+				}
+				if(combo == "e0"){
+					fin = "rax,rsp";
+				}
+				if(combo == "e8"){
+					fin = "rax,rbp";
+				}
+				if(combo == "c8"){
+					fin = "rax,rcx";
+				}
+				if(combo == "c0"){
+					fin = "rax,rax";
+				}
+				if(combo == "d0"){
+					fin = "rax,rdx";
+				}
+
+				if(combo == "d8"){
+					fin = "rax,rbx";
+				}
+				if(combo == "f0"){
+					fin = "rax,rsi";
+				}
+				if(combo == "f8"){
+					fin = "rax,rdi";
+				}
+
+				if(combo == "c7"){
+					fin = "rdi,rax";
+				}
+				if(combo == "fc"){
+					fin = "rsp,rdi";
+				}	
+				
+			}
+			if(opcodes[i] == "48" && opcodes[i+1] == "83"){
+				
+				string reg = opcodes[i+2];
+
+
+				if(reg == "ff"){
+					opcode = "cmp";	
+					oprand1 ="rdi";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "f8"){
+					opcode = "cmp";
+
+					oprand1 ="rax";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "fc"){
+					opcode = "cmp";
+
+
+					oprand1 ="rsp";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "fd"){
+					opcode = "cmp";
+
+
+					oprand1 ="rbp";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "fe"){
+					opcode = "cmp";
+
+
+					oprand1 ="rsi";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "f9"){
+					opcode = "cmp";
+
+
+					oprand1 ="rcx";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "fa"){
+					opcode = "cmp";
+
+
+					oprand1 ="rdx";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "fb"){
+					opcode = "cmp";
+					oprand1 ="rbx";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+
+				
+
+				//SUB 
+
+
+				if(reg == "ef"){
+					opcode = "sub";	
+					oprand1 ="rdi";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "e8"){
+					opcode = "sub";
+
+					oprand1 ="rax";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "ec"){
+					opcode = "sub";
+
+
+					oprand1 ="rsp";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "ed"){
+					opcode = "sub";
+
+
+					oprand1 ="rbp";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "ee"){
+					opcode = "sub";
+
+
+					oprand1 ="rsi";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "e9"){
+					opcode = "sub";
+
+
+					oprand1 ="rcx";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "ea"){
+					opcode = "sub";
+
+
+					oprand1 ="rdx";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "eb"){
+					opcode = "sub";
+					oprand1 ="rbx";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+
+
+				//add
+				if(reg == "c7"){
+					opcode = "add";	
+					oprand1 ="rdi";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "c0"){
+					opcode = "add";
+
+					oprand1 ="rax";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "c4"){
+					opcode = "add";
+
+
+					oprand1 ="rsp";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "c5"){
+					opcode = "add";
+
+
+					oprand1 ="rbp";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "c6"){
+					opcode = "add";
+
+
+					oprand1 ="rsi";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "c1"){
+					opcode = "add";
+
+
+					oprand1 ="rcx";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "c2"){
+					opcode = "add";
+
+
+					oprand1 ="rdx";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				if(reg == "c3"){
+					opcode = "add";
+					oprand1 ="rbx";
+					oprand2 = "0x"+opcodes[i+3];
+					fin = oprand1+", "+ oprand2;		
+				}
+				
+			}
+			if(opcodes[i] == "48" && opcodes[i+1] == "89"){
+			
+				string combo = opcodes[i+2];
+				string mb = opcodes[i+1];
+			
+				
+				opcode ="mov";
+				
+				if(combo == "ec"){
+					fin = "rsp, rbp";
+				}
+				if(combo == "c7"){
+					fin = "rdi, rax";
+				}
+				if(combo == "e0"){
+					fin = "rax,rsp";
+				}
+				if(combo == "e8"){
+					fin = "rax,rbp";
+				}
+				if(combo == "c8"){
+					fin = "rax,rcx";
+				}
+				if(combo == "c0"){
+					fin = "rax,rax";
+				}
+				if(combo == "d0"){
+					fin = "rax,rdx";
+				}
+				if(combo == "d8"){
+					fin = "rax, rbx";
+				}
+				
+				if(combo == "f0"){
+					fin = "rax,rsi";
+				}
+				if(combo == "f8"){
+					fin = "rax,rdi";
+				}
+
+				if(combo == "c7"){
+					fin = "rdi,rax";
+				}
+				if(combo == "fc"){
+					fin = "rsp,rdi";
+				}	
+				
+				
+			}
+
 		
-				//eb 18	jmp    0x4011c8 <main+56>
-				stringstream lol;
-				lol<<opcodes[j+1];
-				int zozi;
-				lol>>hex>>zozi;
-				lol.clear();
-
-				int zfl = zozi+memaddrs+2;
-				lol<<hex<<zfl;
-				lol>>f;
-				if(aslr == true){
-					f = "\t0x"+f;
-				}
-				else{
-					f = "\t0x40"+f;
-				}
-			
-	
-				call="jle";
-				
-				string comb = call+f;
-				instructions.push_back(make_pair(l,comb));
-			}
-
-			//add addl instruction and cmp
-			else if(opcodes[j]=="3b" && opcodes[j+1] == "45"){
-				//woho ,eax 
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-				string f,s,call;
-				f="\teax";
-				if(opcodes[j+2].find("f") != string::npos){
-						string num = opcodes[j+2].substr(opcodes[j+2].find("f")+1);
-						if(num == "0"){
-							s = ",dword[rbp-0x10]";
-						}
-						else if(num == "4"){
-							s = ",dword[rbp-0xc]";
-						}
-						else if(num == "8"){
-							s = ",dword[rbp-0x8]";
-						}
-						else{
-							s = ",dword[rbp-(offset:0x"+num+")]";	
-						}
-					}
-					else{
-							s = ",dword[rbp-(offset:"+opcodes[j+2]+")]";	
-					}
-				
-				call="cmp";
-				
-				string comb = call+f+s;
-				instructions.push_back(make_pair(l,comb));
-			}
-			else if(opcodes[j] == "83" && opcodes[j+1] == "45" || opcodes[j+1] == "7d"){
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-				string f,s,call;
-				if(opcodes[j+1]=="45"){
-					//addl
-					call="add";
-					s = ",0x"+opcodes[j+3];
-					if(opcodes[j+2].find("f") != string::npos){
-						string num = opcodes[j+2].substr(opcodes[j+2].find("f")+1);
-						if(num == "0"){
-							f = "\tdword[rbp-0x10]";
-						}
-						else if(num == "4"){
-							f = "\tdword[rbp-0xc]";
-						}
-						else{
-							f = "\tdword[rbp-(offset:0x"+num+")]";	
-						}
-					}
-					else{
-							f = "\tdword[rbp-(offset:"+opcodes[j+2]+")]";	
-					}
-				}
-				if(opcodes[j+1]=="7d"){
-					//cmp
-					call="cmpl";
-					if(opcodes[j+2].find("f") != string::npos){
-						string num = opcodes[j+2].substr(opcodes[j+2].find("f")+1);
-						if(num == "0"){
-							f = "\tdword[rbp-0x10]";
-						}
-						else if(num == "4"){
-							f = "\tdword[rbp-0xc]";
-						}
-						else{
-							f = "\tdword[rbp-(offset:0x"+num+")]";	
-						}
-					}
-					else{
-							f = "\tdword[rbp-(offset:"+opcodes[j+2]+")]";	
-					}
-					s = ",0x"+opcodes[j+3];
-				
-
-
-
-				}
-				string comb = call+f+s;
-				instructions.push_back(make_pair(l,comb));
-			}
-			else if(opcodes[j] == "64" && opcodes[j+1] == "48" && opcodes[j+2] == "8b" && opcodes[j+3] == "04" && opcodes[j+4] == "25"  && opcodes[j+5] == "28" ){//jmp 
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-
-				instructions.push_back(make_pair(l,"mov\trax,qword(fs:0x28)"));
-			}
-			else if(opcodes[j] == "64" && opcodes[j+1] == "48" && opcodes[j+2] == "2b" && opcodes[j+3] == "14" && opcodes[j+4] == "25" && opcodes[j+5] == "28" ){
-				//jmp 
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-
-				instructions.push_back(make_pair(l,"sub\trdx,qword(fs:0x28)"));
-			}
-			else if(opcodes[j] == "31" && opcodes[j+1] == "c0" ){
-				//jmp 
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-
-				instructions.push_back(make_pair(l,"xor\trax,rax"));
-			}
-			else if(opcodes[j] == "74" && opcodes[j+1] != "fe" && opcodes[j+1] != "ff" && opcodes[j+2] != "ff" ){
-				//jmp 
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-				string f,call;
-		
-				//eb 18	jmp    0x4011c8 <main+56>
-				stringstream lol;
-				lol<<opcodes[j+1];
-				int zozi;
-				lol>>hex>>zozi;
-				lol.clear();
-
-				int zfl = zozi+memaddrs+2;
-				lol<<hex<<zfl;
-				lol>>f;
-				if(aslr == true){
-					f = "\t0x"+f;
-				}
-				else{
-					f = "\t0x40"+f;
-				}
-			
-	
-				call="je";
-				
-				string comb = call+f;
-				instructions.push_back(make_pair(l,comb));
-			}
-			else if(opcodes[j] == "75" && opcodes[j+1] != "fe" && opcodes[j+1] != "ff" && opcodes[j+2] != "ff"){
-				//jmp 
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				gz.clear();
-				string f,call;
-		
-				//eb 18	jmp    0x4011c8 <main+56>
-				stringstream lol;
-				lol<<opcodes[j+1];
-				int zozi;
-				lol>>hex>>zozi;
-				lol.clear();
-
-				int zfl = zozi+memaddrs+2;
-				lol<<hex<<zfl;
-				lol>>f;
-				if(aslr == true){
-					f = "\t0x"+f;
-				}
-				else{
-					f = "\t0x40"+f;
-				}
-			
-	
-				call="jne";
-				
-				string comb = call+f;
-				instructions.push_back(make_pair(l,comb));
-			}
-			else if(opcodes[j]=="55"){
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-			
-				instructions.push_back(make_pair(l,"push rbp"));
-				
-			}
-			else if(opcodes[j]=="5d"){
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-			
-				instructions.push_back(make_pair(l,"pop rbp"));
-				
-			}
-			else if(opcodes[j]=="c7" && opcodes[j+1] == "45"){
-				//DWORD 
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				string f,s,call;
-				call = "mov";
-			
-				f="\tdword ptr[rbp-(offset:0x"+opcodes[j+2]+")]";
-				s = ",0x"+opcodes[j+3];
-
-				
-				string comb = call+f+s;
-				instructions.push_back(make_pair(l,comb));
-			}
-			else if(opcodes[j]=="c9"){
-				gz.clear();
+			if(opcodes[i] == "b8"){
+				opcode = "mov";
+				oprand1 = "rax";
+			    oprand2 = "0x"+opcodes[i+1];	
+				fin = oprand1+", "+oprand2;
 				
 			
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				
-				instructions.push_back(make_pair(l,"leave"));
-				
-
 			}
-			else if(opcodes[j]=="b8"){
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				if(opcodes[j+1]=="00" && opcodes[j+2] == "00"){
-					instructions.push_back(make_pair(l,"mov\teax,0x0"));
-				}
+
+			if(opcodes[i] == "bf"){
+				opcode = "mov";
+				oprand1 = "rdi";
+			       	oprand2 = "0x"+opcodes[i+1];	
+				fin = oprand1+", "+oprand2;
+
 			
 			}
+
+			if(opcodes[i] == "b9"){
+				opcode = "mov";
+				oprand1 = "rcx";
+			       	oprand2 = "0x"+opcodes[i+1];	
+				fin = oprand1+", "+oprand2;
+				
 			
-	
-
-			else if(opcodes[j]=="48"){
-				gz.clear();
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				string f,s,call;
-
-				
-				if(opcodes[j+1]=="8d" && opcodes[j+6]=="00" && opcodes[j+5]=="00" ){
-						//lea definitely 
-						//second is rip 
-						call="lea";
-						if(opcodes[j+2] == "05"){
-							//rax is first
-							f="\trax";
-							string h = opcodes[j+4].substr(opcodes[j+4].find("0")+1)+opcodes[j+3];
-							s=",[rip+0x"+h+"]";
-
-						}
-				}
-				
-				if(opcodes[j+1] == "89"){
-					// movin between registers
-					call="mov";
-					if(opcodes[j+2]=="e5"){
-						f = "\trbp";
-						s=",rsp";
-					}
-					if(opcodes[j+2]=="c7"){
-						//mov    rdi,rax
-						f="\trdi";
-						s = ",rax";
-
-					}
-					if(opcodes[j+2]=="c6"){
-						//mov    rdi,rax
-						f="\trsi";
-						s = ",rax";
-
-					}
-					if(opcodes[j+2]=="45"){
-						//mov    rdi,rax
-						if(opcodes[j+3].find("f") != string::npos){
-							string num = opcodes[j+3].substr(opcodes[j+3].find("f")+1);
-						
-					
-							f ="\tqword[rbp-0x"+num+"]";
-						}
-						else{
-							f="\t0x"+opcodes[j+3];
-						}
-						s = ",rax";
-						
-
-					}
-					
-
-				}
-				if(opcodes[j+1] == "8b"){
-					// movin between registers
-					call="mov";
-					
-					if(opcodes[j+2]=="55"){
-						//mov    rdi,rax
-						if(opcodes[j+3].find("f") != string::npos){
-							string num = opcodes[j+3].substr(opcodes[j+3].find("f")+1);
-						
-					
-							s =",qword[rbp-0x"+num+"]";
-						}
-						else{
-							s=",0x"+opcodes[j+3];
-						}
-						f = "\trdx";
-						
-
-					}
-					
-
-				}
-				if(opcodes[j+1]=="83"){
-					call="sub";
-					if(opcodes[j+2]=="ec"){
-						// we are talking about rsp sub , so it could only be a number (probably bits that are subbed from memory :)  ) 	
-							f="\trsp";
-							s=",0x"+opcodes[j+3];
-					}
-					
-				}
-					
-				
-				string comb = call+f+s;
-				instructions.push_back(make_pair(l,comb));
-				
 			}
-			else if(opcodes[j]=="c3"){
-				gz.clear();
+
+			if(opcodes[i] == "bc"){
+				opcode = "mov";
+				oprand1 = "rsp";
+			       	oprand2 = "0x"+opcodes[i+1];	
+				fin = oprand1+", "+oprand2;
+			
+			
+			}
+			if(opcodes[i] == "bd"){
+				opcode = "mov";
+				oprand1 = "rbp";
+			       	oprand2 = "0x"+opcodes[i+1];	
+				fin = oprand1+", "+oprand2;
 				
 			
-				gz<<hex<<memaddrs;
-				string l;
-				gz>>l;
-				
-				instructions.push_back(make_pair(l,"ret"));
+			}
+
+			if(opcodes[i] == "ba"){
+				opcode = "mov";
+				oprand1 = "edx";
+			       	oprand2 = "0x"+opcodes[i+1];	
+				fin = oprand1+", "+oprand2;
 				
 			}
 
+			if(opcodes[i] == "bb"){
+				opcode = "mov";
+				oprand1 = "rbx";
+			       	oprand2 = "0x"+opcodes[i+1];	
+				fin = oprand1+", "+oprand2;
+				
 			
-		}
+			}
+			if(opcodes[i] == "be"){
+				opcode = "mov";
+				oprand1 = "rsi";
+			    oprand2 = "0x"+opcodes[i+1];	
+				fin = oprand1+", "+oprand2;
+				
+			
+			}	
+			if(opcode.length() >0 && fin.length() >0){
+				string clp1 = opcode+"\t"+fin;
+				string mem = "";
+				ss.clear();
+				ss<<memaddrs;
+				ss>>mem;
+				ss.clear();
+				instructions.push_back(make_pair(mem,clp1));
+				opcode ="";
+				fin = "";
+				oprand1="";
+				oprand2="";
+				clp1="";
+
+			}	
+			
+		}		
 	}
-
-	cout<<"\ndonna disassembler v1.1 (text-based only)\n ";
+	for(auto const& th:instructions){
+		cout<<th.first<<"\t"<<th.second<<endl;
+	}
+	
+	cout<<"\ndonna disassembler v3.0 (text-based only)\n ";
 	//saving and priting some stuff ngl.
 	vector<intptr_t>regs;
 
 	vector<string>jumps;
-	cout<<"\nDissassembly of 'main' function:\n"<<endl;
+	cout<<"\nDissassembly of .text section:\n"<<endl;
 	string decompiled;
-	decompiled+="\nDissassembly of 'main' function:\n";
+	decompiled+="\nDissassembly of .text section:\n";
 	for(auto const &th : instructions){
 		if(th.second.compare("mov ,")!=0){
 
@@ -751,49 +747,31 @@ void disas(char *filename){
 				jumps.push_back(th.second);	
 			}
 			
-			if(aslr==true){
+			
+			if(th.second != " "){
+				stringstream conv;
+				string memaddr = th.first;
+				memaddr.erase(memaddr.begin());
+			
+				memaddr = "0x0000555555555"+memaddr;
+
+				ss.clear();
+				intptr_t addr;
+				string dat = memaddr;
 				
-				if(th.second != " "){
-					stringstream conv;
-					string memaddr = th.first;
-					memaddr.erase(memaddr.begin());
+				conv<<dat;
+				conv>>hex>>addr;
 				
-					memaddr = "0x0000555555555"+memaddr;
+				regs.push_back(addr);
+				conv.clear();
 
-					ss.clear();
-					intptr_t addr;
-					string dat = memaddr;
-					
-					conv<<dat;
-					conv>>hex>>addr;
-					
-					regs.push_back(addr);
-					conv.clear();
+				cout<<memaddr<<":"<<"\t"<<th.second<<endl;
 
-					cout<<memaddr<<":"<<"\t"<<th.second<<endl;
-
-					decompiled+=memaddr+":"+"\t"+th.second+"\n";
-				}
+				decompiled+=memaddr+":"+"\t"+th.second+"\n";
+		}
 
 				
-			}
-			else{
-				if(th.second != " "){
-					string memaddr = "0x000000000040"+th.first;
-					intptr_t addr;
-					string dat = memaddr;
-					stringstream conv;
-					conv<<dat;
-					conv>>hex>>addr;
-					
-					regs.push_back(addr);
-					conv.clear();
-					cout<<th.first<<":"<<"\t"<<th.second<<endl;
-
-					decompiled+="0x000000000040"+th.first+":"+"\t"+th.second+"\n";
-				}
-
-			}
+			
 			
 		}
 	}
@@ -805,31 +783,23 @@ void disas(char *filename){
 	string f=filename;
 	f = "/var/tmp/donna/"+f.substr(0,f.find(".c"))+".gpd";
 	ofstream writer(f);
-	if(writer.is_open()){
-		writer<<decompiled;
-	}
-	else{
-		cout<<"Could not open ofstream"<<endl;
-		exit(1);
-	}
+	
+	writer<<decompiled;
+	
 	writer.close();
 
 	string fil = filename;
-	  
-    registerdump(regs,fil);
-
-		
 	
+    registerdump(regs,fil);
 	cout<<"Register data dumped."<<endl;
 
 
-
+	
 }
 int main(int argc, char *argv[]){
 	if(argc <2){
 		printf("********** donna disassembler man-db **********\n\ti'm not into you, i'm donna :)\nHELP:\n\tIf you want to set a breakpoint,well they are automatically done for you :) \n\tIf you wish to disassemble the file,run donna with filename arg.\n\tExample: ./donna {filename}\n\nhave a nice day\n\t-nitrodegen\n");
-    exit(1);
-
+    	exit(1);
 	}
 
 	string cmd = argv[1];
@@ -838,9 +808,8 @@ int main(int argc, char *argv[]){
 		if(argc<2){
 			cout<<"Disassembly runs with: -d {filename}"<<endl;
 		}
-		cout<<"****************** donna ELF Config *********************"<<endl;
-		cout<<"ELF File Data:"<<endl;
-    disas(argv[2]);
+
+		disas(argv[2]);
 		dump(argv[2]);
 
 	}
