@@ -1,0 +1,17 @@
+
+donna v4.0
+actually more like qira but whatever.
+it has to first have banker system that is going to decrypt back the instructions.
+everything else is just an addon
+
+how do we find the instruction?
+example:
+0101 0010 1000 0000 0000 0010 1001 1010 <-fetched binary number
+xxx1 1010 1x0m mmmm xx1x 10nn nnnd dddd  -  asrv Rd Rn Rm <- example from arm64.bank
+compare first three "numbers"
+but skip everything that isnt 1 or 0 
+
+
+
+
+
