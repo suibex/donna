@@ -1,3 +1,5 @@
+//nitrodegen's god tool for debugging 
+// (C) Gavrilo Palalic 2022
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
