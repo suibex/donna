@@ -1,5 +1,5 @@
 # donna
-
+<h1>PROJECT IS CURRENTLY BEING COMPLETELY REWRITTEN. DO NOT TRUST THE PROCESS!</h1>
 <b>debugger often named "never again"</b> (donna) is a debugger and analyzer made for ELF executables in Linux.
 <br>Competitor to gdb or lldb<br>
 <br>Created by me , so feel free to change and modify it , as long as you don't sell it ,copy it,etc...<br>
