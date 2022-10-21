@@ -88,7 +88,7 @@ class Banker{
         return res;
 
     } 
-    string search_for_instruction(string o1,string o2,string o3){
+    string search_for_instruction(string o1,string o2,string o3,string o4){
         vector<string>results;
 
         for(int i =2;i<bank_ocodes.size();i++){
@@ -114,7 +114,10 @@ class Banker{
                 for(int j =8;j<12;j++){
                     op3+=blob[j];
                 }
-
+                string op4;
+                for(int j =28;j<32;j++){
+                    op4+=blob[j];
+                }
           
            if(o2 == op2){
             //xx00 1110 001m
@@ -123,17 +126,25 @@ class Banker{
 
               int occurance_op1= calculate_occurance(op1);
               int occurance_op3= calculate_occurance(op3);
+
+              int occurance_op4= calculate_occurance(op4);
+               
+               
               //cout<<occurance_op1<<":"<<occurance_op3<<endl;
               int found_1 = find_binary(op1,o1);
               int found_3 = find_binary(op3,o3);
+              int found_4 = find_binary(op4,o4);
+               
               if(debug){
+                
+            
 
                 cout<<found_1<<":"<<found_3<<endl;
                 cout<<g<<"\t"<<"1: "<<op1<<":"<<o1<< "|\t"<<found_1<<" should find:" <<occurance_op1<<endl;
                 cout<<"3: "<<op3<<":"<<o3<< "|\t"<< found_3<<" should find:" <<occurance_op3<<endl;
-                
+                    
               }
-              if(found_1 >= occurance_op1 && found_3>=occurance_op3){
+              if(found_4 >= occurance_op4 && found_1 >= occurance_op1 && found_3>=occurance_op3){
                 return g;
               }
 
@@ -171,6 +182,9 @@ class Banker{
             else if(oprand =="AIMM"){
               result='i';
             }   
+            if(oprand == "EXCEPTION"){
+              result='i';
+            }
             else if(oprand == "Rd_SP"){
               result='d';
             }
@@ -183,8 +197,9 @@ class Banker{
     }
     string opcode_decode(int number){
       string res = bitset<32>(number).to_string();
-      cout<<"\nbinary :"<<res<<endl;
-
+      if(debug){
+         cout<<"\nbinary :"<<res<<endl;
+      }
       //vector<int>result;
       string op1,op2;
       for(int i =0;i<4;i++){
@@ -198,14 +213,22 @@ class Banker{
           op3+=res[i];
       }
 
-      string blob=search_for_instruction(op1,op2,op3);
-     
-      if(blob== "NULL"){
-          printf("\ncannot decode instruction.");
-          exit(1);
+      string op4;
+      for(int i =28;i<32;i++){
+          op4+=res[i];
       }
-      cout<<"binary:"<<res<<endl;
+      string blob=search_for_instruction(op1,op2,op3,op4);
+
+      if(blob== "NULL"){
+          return "<not defined>";
+          printf("\ncannot decode instruction.");
+          //exit(1);
+      }
+      
+     
       if(debug){
+         cout<<"*** binary:"<<res<<endl;
+      
         cout<<"\n******************************************************\nFound matching instruction:"<<blob<<endl;
       }
       vector<string>popit = split(blob,"-");
@@ -270,12 +293,12 @@ class Banker{
          instruction+=instr_package[i];
          }
       }
-      cout<<instruction;
+      //cout<<instruction;
      return instruction;
     }
-    vector<int>banker_load_file(string f){
+    vector<unsigned int>banker_load_file(string f){
 
-       vector<int> instructions;
+       vector<unsigned int > instructions;
         //load ELF file here.
         int fd = open(f.c_str(),O_RDONLY);
         struct stat st;
@@ -352,24 +375,33 @@ class Banker{
               ss.clear();
               char dd[32];
               sprintf(dd,"%x",mb[j]);
+              
               string n;
               ss<<dd;
               ss>>n;
-             num+=n;
+              if(n.length() == 1){
+                n="0"+n;
+              }
+              
+              num+=n;
           }
-            ss.clear();
-             int kk=0;
+          //cout<<num<<endl;
+       
+           ss.clear();
+             
+             unsigned int  kk=0;
              ss<<hex<<num;
              ss>>kk;
-            instructions.push_back(kk);
+             //cout<<kk<<endl;
+              
+              instructions.push_back(kk);
         }
         
         if(debug){
           printf("\n*** file read. loaded instructions:%d",instructions.size());
           }
           
-          return instructions;
-    
+          return instructions;   
     }
 };
 /*
@@ -380,12 +412,20 @@ class Banker{
   instruction->oprand->opcode
   
 */
+/****** example usage of load_bank. decoding!*/
+
 int main(int argc,char* argv[]){
   
  
-  Banker *bank = new Banker("./banks/arm64.bank",true);
-  bank->banker_load_file("./test");  
-  //string res= bank->opcode_decode(0x5280029c);
-  //cout<<res<<endl;
+  Banker *bank = new Banker("./banks/arm64.bank",false);
+  vector<unsigned int> instr =   bank->banker_load_file("./test");
+  
+  for(int i =0;i<instr.size();i++){
+        string res = bank->opcode_decode(instr[i]);
+        cout<<res<<endl;
+  }
 
-} 
+}
+
+
+
