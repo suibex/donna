@@ -412,8 +412,7 @@ class Banker{
   instruction->oprand->opcode
   
 */
-/****** example usage of load_bank. decoding!*/
-
+/****** example usage of load_bank. decoding!
 int main(int argc,char* argv[]){
   
  
@@ -426,6 +425,4 @@ int main(int argc,char* argv[]){
   }
 
 }
-
-
-
+*/
