@@ -296,9 +296,9 @@ class Banker{
       //cout<<instruction;
      return instruction;
     }
-    vector<unsigned int>banker_load_file(string f){
+    vector<pair<unsigned int,unsigned int> >banker_load_file(string f){
 
-       vector<unsigned int > instructions;
+       vector<pair<unsigned int,unsigned int>> instructions;
         //load ELF file here.
         int fd = open(f.c_str(),O_RDONLY);
         struct stat st;
@@ -367,7 +367,7 @@ class Banker{
         
         stringstream ss;
         ss.clear();
-
+	int bobi =0; 
         for(int i =actual_entry;i<actual_entry+size_of_executable;i+=4){
           string num;
           int k =0;
@@ -394,7 +394,10 @@ class Banker{
              ss>>kk;
              //cout<<kk<<endl;
               
-              instructions.push_back(kk);
+		unsigned int address=start_of_program+bobi;
+		bobi+=4;
+		 
+   		instructions.push_back(make_pair(address,kk));
         }
         
         if(debug){
@@ -412,17 +415,19 @@ class Banker{
   instruction->oprand->opcode
   
 */
-/****** example usage of load_bank. decoding!
-int main(int argc,char* argv[]){
-  
+/****** example usage of load_bank. decoding!*/
+ // int main(int argc,char* argv[]){
+ /* 
  
   Banker *bank = new Banker("./banks/arm64.bank",false);
-  vector<unsigned int> instr =   bank->banker_load_file("./test");
-  
+  vector<pair<unsigned int ,unsigned int>> instr =   bank->banker_load_file("./testing/test_exec");
   for(int i =0;i<instr.size();i++){
-        string res = bank->opcode_decode(instr[i]);
-        cout<<res<<endl;
-  }
+ 	int addr = instr[i].first;
+	int exec = instr[i].second;
 
-}
-*/
+   	string res = bank->opcode_decode(exec);
+	printf("0x%x\t: %s\n",addr,res.c_str());	 
+  }
+	*/
+//}
+
