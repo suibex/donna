@@ -1,5 +1,12 @@
-//nitrodegen's god tool for debugging 
-// (C) Gavrilo Palalic 2022
+/*
+ *	*part of nitrodegen's god tools for debugging*
+ *
+ *	donna debugger v4.0 (one that actually works on arm64)
+ *		decompiler header.
+ *		usage:decompiling the binary and returning instructions along with addresses.
+ *	
+ *	(C) Gavrilo Palalic 2022.
+ */
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
@@ -12,6 +19,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <vector>
 #include "osx_elf.h"
 #define MADDR 0x1234
 using namespace std;
