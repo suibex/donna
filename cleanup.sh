@@ -1,6 +1,8 @@
 #!/bin/bash
 cd ./data/
 rm *
-cd ../
+cd ./reginfo
+rm * 
 
+cd ../../
 
