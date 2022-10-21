@@ -57,7 +57,7 @@ class Banker{
     vector<string>decoded;
     bool debug;
 
-   
+	//this is where we load the actual instruction bank, split all lines and insert into new vector.   
     Banker(string filename,bool de){
         bank_file=filename;
         debug = de;
@@ -74,6 +74,7 @@ class Banker{
           printf("\n*** bank loaded.");
         }
     } 
+    //find if any of the binary nums contain 1 or 0 is it usable?
     int calculate_occurance(string a){
         int b=0;
         for(int i =0;i<4;i++){
@@ -83,6 +84,7 @@ class Banker{
         }
         return b;
     }
+    //find if any of the chars of a string match the b chars at the same pos
     int find_binary(string a, string b){
         
         int res = 0; 
@@ -95,7 +97,7 @@ class Banker{
         }
         return res;
 
-    } 
+    } //searching if the instructions of the opcoded number match with some in the database
     string search_for_instruction(string o1,string o2,string o3,string o4){
         vector<string>results;
 
@@ -139,14 +141,14 @@ class Banker{
                
                
               //cout<<occurance_op1<<":"<<occurance_op3<<endl;
-              int found_1 = find_binary(op1,o1);
+   //getting first 4 binary nums and comparing with opcoded ones.
+   	      int found_1 = find_binary(op1,o1);
               int found_3 = find_binary(op3,o3);
               int found_4 = find_binary(op4,o4);
                
               if(debug){
                 
-            
-
+   
                 cout<<found_1<<":"<<found_3<<endl;
                 cout<<g<<"\t"<<"1: "<<op1<<":"<<o1<< "|\t"<<found_1<<" should find:" <<occurance_op1<<endl;
                 cout<<"3: "<<op3<<":"<<o3<< "|\t"<< found_3<<" should find:" <<occurance_op3<<endl;
@@ -281,7 +283,7 @@ class Banker{
           string n;
           ss>>n;
            
-          if(look_for[i] == 'd' || look_for[i] == 'n'){
+          if(look_for[i] == 'd'  || look_for[i] == 'n'){
             op = "x";
           }
 
