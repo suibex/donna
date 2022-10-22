@@ -16,4 +16,5 @@ def log(test):
 #test =0x5280028d
 #test = 0x8d028052
 log(0xaa1e03e1)
-log(0x2a1e03e1)
+log(0xeb01005f)
+log(0xeb1403df)

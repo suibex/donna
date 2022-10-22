@@ -1,8 +1,0 @@
-0x400078:	movr	x1,x30
-0x40007c:	movr	x2,x15
-0x400080:	movr	x3,x16
-0x400084:	movw	w4,w30
-0x400088:	movw	w6,w5
-0x40008c:	movw	w3,w5
-0x400090:	movw	w6,w1
-0x400094:	movz	x3,#20

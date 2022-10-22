@@ -188,9 +188,13 @@ class Banker{
              
           }        
           else{
+		
             if(oprand.find("ADDR") != string::npos && oprand != "ADDR_SIMM9" && oprand != "ADDR_SIMPLE"){
                  result='i';
             }
+	    else if(oprand == "ADDR_PCREL19"){
+		result='i';
+	    }		
             else if(oprand == "IMMR"){
                 result='i';
             }
@@ -289,13 +293,14 @@ class Banker{
       if(debug){
         cout<<"extension size:"<<extension.size()<<endl;
       }
+     
       instr_package.push_back(extension[0]); 
       
-      look_for.push_back(define_oprand(extension[1]));
-      look_for.push_back(define_oprand(extension[2]));
-      if(extension.size() ==4){
-        look_for.push_back(define_oprand(extension[3]));
-      }
+      for(int i =1;i<extension.size();i++){
+      look_for.push_back(define_oprand(extension[i])); 
+      //look_for.push_back(define_oprand(extension[2]));
+      
+      }	
       stringstream ss;
       
       for(int i =0;i<look_for.size();i++){
@@ -368,7 +373,9 @@ class Banker{
         const char *const shstrp  = (const char*)mb+shr->sh_offset;
         for(int i =0;i<ehdr->e_shnum;i++){
               string n = shstrp+shdr[i].sh_name;
-              if(n == ".text"){
+              cout<<"FUNCTIONS:"<<n<<endl;
+	      	
+	      if(n == ".text"){
                   start_of_program=shdr[i].sh_addr;
                   size_of_executable=shdr[i].sh_size;
                   break;
@@ -376,7 +383,8 @@ class Banker{
                //  }
               
         }
-        runtime_addr =phdr[0].p_vaddr;
+	 
+ 	runtime_addr =phdr[0].p_vaddr;
 
         }
         else{
