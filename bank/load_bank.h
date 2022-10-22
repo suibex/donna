@@ -103,7 +103,8 @@ class Banker{
 
         for(int i =2;i<bank_ocodes.size();i++){
             string g = bank_ocodes[i];
-            vector<string>spt = split(g,"-");
+            if(g.length() >1){
+	    vector<string>spt = split(g,"-");
             
             string tmplt = spt[0];
             string blob;
@@ -171,6 +172,7 @@ class Banker{
               if(found_4 >= occurance_op4 && found_5 >= occurance_op5 &&  found_6 >= occurance_op6 && found_1 >= occurance_op1 && found_3>=occurance_op3){
                 return g;
               }
+	   }
 	      
 
             }
@@ -311,7 +313,12 @@ class Banker{
           ss>>n;
            
           if(look_for[i] == 'd'  || look_for[i] =='t' || look_for[i] == 'n'){
-            op = "x";
+            if(extension[0] != "movw"){
+		  op = "x";
+	    }
+	    else{
+		op="w";
+		}	    
           }
 
           else{

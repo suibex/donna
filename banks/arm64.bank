@@ -1,5 +1,7 @@
 arm64:
 32
+1010 1010 000n nnnn xxxx xxxx xxxd dddd  -  movr Rd Rn
+0010 1010 000n nnnn xxxx xxxx xxxd dddd  -  movw Rd Rn
 xx01 1110 xx1x xxx0 1011 10nn nnnd dddd  -  abs Sd Sn
 xx00 1110 xx1x xxx0 1011 10nn nnnd dddd  -  abs Vd Vn
 x001 1010 000m mmmm xxxx 00nn nnnd dddd  -  adc Rd Rn Rm
