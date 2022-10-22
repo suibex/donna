@@ -49,7 +49,7 @@ class WeakAssDebugger{
 		}
 	}
 	void save_register_data(struct user_pt_regiz a,unsigned int b ){
-		string file = "../data/reginfo/"+filename+to_string(b)+".reginfo";
+		string file = "./data/reginfo/"+filename+to_string(b)+".reginfo";
 		string data;
 		for(int i =0;i<32;i++){
 			data+="w"+to_string(i)+":\t"+to_string(a.regs[i])+"\n";
@@ -128,7 +128,7 @@ class WeakAssDebugger{
 //testing purpouses
 void donna_main(string filename,string bf){
 	//cout<<bf<<endl;
-	Banker *bank = new Banker(bf,false);
+	Banker *bank = new Banker(bf,true);
 	vector<pair<unsigned int ,unsigned int>> instr =   bank->banker_load_file(filename);
 	string decompiled;
 	stringstream ss;
@@ -152,7 +152,7 @@ void donna_main(string filename,string bf){
 		printf("*** saving decompiled data to 'data' folder.\n");
 	}
 
-	ofstream str("../data/decompiled"+filename+".dn");
+	ofstream str("./data/decompiled"+filename+".dn");
 	str<<decompiled;
 	str.close();
 	WeakAssDebugger *deb =new WeakAssDebugger(address_savings,filename,false,ARM);

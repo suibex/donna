@@ -98,8 +98,8 @@ class Banker{
         return res;
 
     } //searching if the instructions of the opcoded number match with some in the database
-    string search_for_instruction(string o1,string o2,string o3,string o4){
-        vector<string>results;
+    string search_for_instruction(string o1,string o2,string o3,string o4,string o5,string o6){
+	    vector<string>results;
 
         for(int i =2;i<bank_ocodes.size();i++){
             string g = bank_ocodes[i];
@@ -128,8 +128,15 @@ class Banker{
                 for(int j =28;j<32;j++){
                     op4+=blob[j];
                 }
-          
-           if(o2 == op2){
+          	string op5;
+                for(int j =20;j<24;j++){
+                    op5+=blob[j];
+                }
+		string op6;
+                for(int j =24;j<28;j++){
+                    op6+=blob[j];
+                }
+           if(o2== op2){
             //xx00 1110 001m
               //cout<<o1<<":"<<o2<<":"<<o3<<endl;
 
@@ -138,25 +145,33 @@ class Banker{
               int occurance_op3= calculate_occurance(op3);
 
               int occurance_op4= calculate_occurance(op4);
-               
-               
-              //cout<<occurance_op1<<":"<<occurance_op3<<endl;
+              int occurance_op5= calculate_occurance(op5);
+   	     int occurance_op6= calculate_occurance(op6);
+
+
+             //cout<<occurance_op1<<":"<<occurance_op3<<endl;
    //getting first 4 binary nums and comparing with opcoded ones.
    	      int found_1 = find_binary(op1,o1);
               int found_3 = find_binary(op3,o3);
               int found_4 = find_binary(op4,o4);
-               
+	      int found_5 = find_binary(op5,o5);
+ 	      int found_6 = find_binary(op6,o6);     
               if(debug){
                 
    
                 cout<<found_1<<":"<<found_3<<endl;
                 cout<<g<<"\t"<<"1: "<<op1<<":"<<o1<< "|\t"<<found_1<<" should find:" <<occurance_op1<<endl;
                 cout<<"3: "<<op3<<":"<<o3<< "|\t"<< found_3<<" should find:" <<occurance_op3<<endl;
-                    
+   		 cout<<"4: "<<op4<<":"<<o4<< "|\t"<< found_4<<" should find:" <<occurance_op4<<endl;
+   		 cout<<"5: "<<op5<<":"<<o5<< "|\t"<< found_5<<" should find:" <<occurance_op5<<endl;
+   		 cout<<"6: "<<op6<<":"<<o6<< "|\t"<< found_6<<" should find:" <<occurance_op6<<endl;
+   			               
+
               }
-              if(found_4 >= occurance_op4 && found_1 >= occurance_op1 && found_3>=occurance_op3){
+              if(found_4 >= occurance_op4 && found_5 >= occurance_op5 &&  found_6 >= occurance_op6 && found_1 >= occurance_op1 && found_3>=occurance_op3){
                 return g;
               }
+	      
 
             }
        }
@@ -189,6 +204,9 @@ class Banker{
             else if(oprand == "HALF"){
               result='i';
             }
+	    else if(oprand == "ADDR_SIMM7"){
+		result='t';
+	    }		
             else if(oprand =="AIMM"){
               result='i';
             }   
@@ -227,8 +245,17 @@ class Banker{
       for(int i =28;i<32;i++){
           op4+=res[i];
       }
-      string blob=search_for_instruction(op1,op2,op3,op4);
 
+      string op5;
+      for(int i =20;i<24;i++){
+          op5+=res[i];
+      }
+      string op6;
+      for(int i =24;i<28;i++){
+          op6+=res[i];
+      }
+
+      string blob=search_for_instruction(op1,op2,op3,op4,op5,op6);
       if(blob== "NULL"){
           return "<not defined>";
           printf("\ncannot decode instruction.");
@@ -283,7 +310,7 @@ class Banker{
           string n;
           ss>>n;
            
-          if(look_for[i] == 'd'  || look_for[i] == 'n'){
+          if(look_for[i] == 'd'  || look_for[i] =='t' || look_for[i] == 'n'){
             op = "x";
           }
 
