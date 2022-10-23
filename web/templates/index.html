@@ -4,13 +4,252 @@
 	    <meta charset="">
 	    <meta http-equiv="X-UA-Compatible" content="IE=edge">
 	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	    <title>Document</title>
+	    <title>donna</title>
+		<style>
+			body{
+				background-color: #515757;
+				
+			}
+			.loaded_file{
+				position: fixed;
+				background-color: #101212;
+				width:100%;
+				height:4rem;
+				top:-1rem;
+				left:0;
+				right:0;
+				bottom: 0;;
+			}
+			.filename{
+				position: absolute;
+				left:1rem;
+				color:white;
+				top:1rem;
+				font-size: 1.2rem;
+				font-family:monospace;
+			
+			}
+			.titl{
+				position: absolute;
+				left:1rem;
+				color:white;
+				top:1rem;
+				font-size: 1.1rem;
+				font-family:monospace;
+				color:bisque;
+
+			
+			}
+
+			.hmark{
+				position: absolute;
+				left:1rem;
+				color:white;
+				top:1rem;
+				font-size: 1.1rem;
+				font-family:monospace;
+				color:blanchedalmond;
+			
+			
+			}
+			.reg_info{
+				position: absolute;
+				left:1rem;
+				color:white;
+				top:2rem;
+				font-size: 0.9rem;
+				font-family:monospace;
+
+			
+			}
+			
+			.regs{
+				position: fixed;
+				background-color: #101212;
+				width:35rem;
+				height:15rem;
+				top:80%+4rem;
+				left:0;
+				right:0;
+				bottom: 0;;
+			}
+			.hexed{
+				position: fixed;
+				background-color: #101212;
+				width:100%;
+				height:15rem;
+				top:80%+4rem;
+				left:35rem;
+				overflow: scroll;
+				right:0;
+				bottom: 0;;
+			}
+		
+			.decompiled{
+				
+				position: static;
+				background-color: white;
+				width:40rem;
+				height:100rem;
+				top:5rem;
+				left:-1rem;
+				overflow: scroll;
+				right:0;
+				bottom: 0;;
+			
+			}
+			.markings{
+				position: absolute;
+				left:1rem;
+				color:white;
+				top:2.5rem;
+				font-size: 0.7rem;
+				font-family:monospace;
+			}
+			.dc{
+				position: absolute;
+				left:1rem;
+				color:black;
+				top:2.5rem;
+				font-size: 1.1rem;
+				font-family:monospace;
+			}
+			.red{
+				color:red;
+			}
+			
+		</style>
 
 	</head>
 	<body>
+		<div class="loaded_file">
+			<h1 class="filename" id="fd">
 		
-		<h1>hello</h1>
+			</h1>
 
+		</div>
+		<div class="regs">
+				<h1 class="titl">move through the instructions using arrow keys.</h1>	
+			<h1 class="reg_info" id="rg"></h1>
+		</div>
+		<div class="decompiled">
+			<h1 class="dc" id="dc"></h1>
+		</div>	
+		<div class="hexed">
+			<h1 class="hmark">instruction markings:</h1>
+			<h1 class="markings" id="mark"></h1>
+			
+		</div>
+		
 	</body>
+	<script>
+			var register_dumped={};
+			var decompiled_file={};
+			var current_page=0;
+			var max_pages=0;
+			document.onkeydown=handle_key;
+			var regtext = document.getElementById("rg");
+			function add_spaces(e){
+				var res="";
+				var spt = e.split("\n")
+				for(var i =0;i<spt.length;i++){
+					if(i%4==0){
+						res+=" <br> ";
+					}
+					var data1 =spt[i].split(":");
+					var val = "0x"+parseInt(spt[i].split(":")[1].replace("\t","")).toString(16);
+					res+=data1[0]+":\t"+val+" ";
+				}
+				
+				return res;
+			}
+			function bob(e){
+				var res ="";
+				e=e.split("\n");
+				for(var i =0;i<e.length;i++){
+					var thing = e[i].split(":");
+					if(thing.length>=2){
+					var address = "<p style='color:red;display:inline;'>"+thing[0]+"</p>";
+					var line = address+":"+thing[1];
 
+					res+=line+"<br>";
+					}
+				}
+				return res;
+			}
+			function handle_key(event){
+				if(event.key=="ArrowLeft"){
+					if(current_page>0){
+						current_page--;
+
+							if(register_dumped[current_page]!= undefined){
+								regtext.innerHTML=add_spaces(register_dumped[current_page]);
+							//current_page++;
+							}
+
+
+					}
+					console.log("back:"+current_page.toString());
+				}
+					
+			
+				if(event.key=="ArrowRight"){
+						console.log(current_page);
+						if(register_dumped[current_page]!=undefined){
+							current_page++;
+							if(register_dumped[current_page]!= undefined){
+							 	regtext.innerHTML=add_spaces(register_dumped[current_page]);
+							//current_page++;
+							}
+						}
+						else{
+							current_page--;
+						}
+						
+				}
+			}
+			function spacing(e){
+				var res = "";
+				for (var i =0;i<e.length;i++){
+					if(i%100==0){
+						res+="<br>";
+					}
+					//console.log(e[i]);
+					res+=e[i];
+				}
+				return res;
+			}
+			async function get_data(){
+				var filename = document.getElementById("fd")
+				var dc = document.getElementById("dc")
+				var data= {
+					method:'POST',
+					headers:{
+						'Content-Type':'application/json'
+					},
+				}
+				const resp = await fetch("/file_request",data)
+				const r = await resp.json();
+				var fn = "donna | file analyzed: 	"+r[0];
+				var decompiled = r[1];
+				var reg_info = r[2];
+				var markings = r[3];
+				dc.innerHTML=bob(decompiled);
+				console.log("*** decompiled parts:"+decompiled.length.toString());
+				var mrk = document.getElementById("mark")
+				mrk.innerHTML=spacing(markings);
+				console.log(markings);	
+
+				register_dumped=reg_info;
+				decompiled_file=decompiled;
+
+				filename.innerHTML=fn;
+				current_page=0;
+				max_pages=register_dumped.length;
+				regtext.innerHTML=add_spaces(register_dumped[current_page]);
+				console.log("*** file loaded successfully. max_pages:"+max_pages.toString());
+
+			}	
+			get_data();
+		</script>
 </html>
