@@ -91,13 +91,13 @@ def read_config_data(filename):
     reginfo= reg
     
     return [analysis,reginfo]
-#os.system("cd tooling && ./cleanup.sh && cd ../")
+os.system("cd tooling && ./cleanup.sh && cd ../")
 sys.path.insert(1, './web')
 import dweb
 filename = sys.argv[1]
 data=read_config_data(filename)
 markings = file_markings(filename,data[0])
-#os.system("./backend "+filename +" ./banks/arm64.bank")
+os.system("./backend "+filename +" ./banks/arm64.bank")
 data= (filename,data[0],data[1],markings)
 dweb.data=data
 wb = dweb.DonnaWebServer()
